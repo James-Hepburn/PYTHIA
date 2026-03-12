@@ -245,7 +245,6 @@ struct SplashScreen: View {
             }
         }
         .opacity (beginVisible ? 1 : 0)
-        .opacity (beginPulse)
         // Subtle pulse on the begin button
         .onAppear {
             withAnimation (.easeInOut (duration: 2.0).repeatForever (autoreverses: true).delay (5.0)) {

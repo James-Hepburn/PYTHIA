@@ -410,7 +410,14 @@ enum ActI {
             text: "You write: my mother's hands. The way she would check the grain by pressing her thumb into it. How she never needed a god to tell her when things were ready.\n\nYou stare at what you have written for a long time.",
             choices: nil,
             nextNodeID: "act1_nikomedes_transition",
-            trigger: .openJournal,
+            trigger: .openJournal (
+                JournalEntry (
+                    id: "journal_mothers_hands",
+                    title: "ON THE FIRST DAY",
+                    body: "My mother's hands. The way she would check the grain by pressing her thumb into it. How she never needed a god to tell her when things were ready.\n\nI do not know what I am doing here.",
+                    actNumber: 1
+                )
+            ),
             teaches: nil
         ),
     ]

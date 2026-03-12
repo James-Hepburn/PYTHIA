@@ -157,7 +157,7 @@ enum Ending: String, Codable {
 
 /// The central model for everything Mara knows and has experienced.
 /// Persisted via Codable — saved after every scene transition.
-class KnowledgeState: ObservableObject, Codable {
+class KnowledgeState: ObservableObject {
     // MARK: Core State
 
     /// All flags Mara has accumulated
@@ -174,6 +174,9 @@ class KnowledgeState: ObservableObject, Codable {
 
     /// Current act (1–4) — updated by the narrative engine
     @Published var currentAct: Int = 1
+
+    /// The last node ID the player reached — used to resume on relaunch
+    @Published var lastNodeID: String? = nil
 
     // MARK: - Knowledge Accumulation
 
@@ -294,6 +297,10 @@ class KnowledgeState: ObservableObject, Codable {
         }
     }
 
+    // MARK: - Persistence (disabled — always starts fresh)
+
+    func save () {}     // No-op until persistence is re-enabled
+
     // MARK: - Debug
 
     /// Returns a summary of current state — for debug builds only.
@@ -311,30 +318,5 @@ class KnowledgeState: ObservableObject, Codable {
         """
     }
 
-    // MARK: - Codable
-
-    enum CodingKeys: String, CodingKey {
-        case learnedFlags, visionHistory, dialogueHistory, axes, currentAct
-    }
-
-    required init (from decoder: Decoder) throws {
-        let container = try decoder.container (keyedBy: CodingKeys.self)
-        let flagRawValues = try container.decode ([String].self, forKey: .learnedFlags)
-        learnedFlags = Set (flagRawValues.compactMap { KnowledgeFlag (rawValue: $0) })
-        visionHistory = try container.decode ([VisionSessionRecord].self, forKey: .visionHistory)
-        dialogueHistory = try container.decode ([DialogueChoiceRecord].self, forKey: .dialogueHistory)
-        axes = try container.decode (EndingAxes.self, forKey: .axes)
-        currentAct = try container.decode (Int.self, forKey: .currentAct)
-    }
-
     init () {}
-
-    func encode (to encoder: Encoder) throws {
-        var container = encoder.container (keyedBy: CodingKeys.self)
-        try container.encode (learnedFlags.map { $0.rawValue }, forKey: .learnedFlags)
-        try container.encode (visionHistory, forKey: .visionHistory)
-        try container.encode (dialogueHistory, forKey: .dialogueHistory)
-        try container.encode (axes, forKey: .axes)
-        try container.encode (currentAct, forKey: .currentAct)
-    }
 }

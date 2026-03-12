@@ -8,31 +8,53 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var knowledge = KnowledgeState ()
-    @State private var gameStarted: Bool = false
-    @State private var splashOpacity: Double = 1.0
+
+    // NarrativeEngine hoisted to @StateObject so it is created once
+    // and never reconstructed during phase transitions. Creating it
+    // inline inside the ZStack body caused a new engine (and a new
+    // advance() call) on every re-render, which swallowed the
+    // ActTitleCard tap gesture.
+    @StateObject private var engine: NarrativeEngine = {
+        let k = KnowledgeState ()
+        return NarrativeEngine (
+            nodes: ActI.nodes,
+            knowledge: k,
+            startNodeID: nil        // always starts fresh for now
+        )
+    } ()
+
+    enum Phase { case splash, actCard, game }
+    @State private var phase: Phase = .splash
 
     var body: some View {
         ZStack {
-            // --- Game (underneath, ready before transition) ---
-            if gameStarted {
-                SceneView (
-                    engine: NarrativeEngine (
-                        nodes: ActI.nodes,
-                        knowledge: knowledge
-                    )
-                )
+            // --- Game — always in the hierarchy so the engine stays alive ---
+            // Hidden behind the splash/act card until phase == .game.
+            SceneView (engine: engine)
+                .opacity (phase == .game ? 1 : 0)
+                .allowsHitTesting (phase == .game)
                 .transition (.opacity)
-            }
 
-            // --- Splash (on top until dismissed) ---
-            if !gameStarted {
-                SplashScreen {
-                    // Fade out splash, reveal game
-                    withAnimation (.easeInOut (duration: 1.0)) {
-                        gameStarted = true
+            // --- Act I title card ---
+            if phase == .actCard {
+                ActTitleCard (actNumber: 1) {
+                    withAnimation (.easeInOut (duration: 0.8)) {
+                        phase = .game
                     }
                 }
                 .transition (.opacity)
+                .zIndex (1)
+            }
+
+            // --- Splash ---
+            if phase == .splash {
+                SplashScreen {
+                    withAnimation (.easeInOut (duration: 0.6)) {
+                        phase = .actCard
+                    }
+                }
+                .transition (.opacity)
+                .zIndex (2)
             }
         }
         .ignoresSafeArea ()

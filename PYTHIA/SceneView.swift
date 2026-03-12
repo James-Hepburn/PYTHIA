@@ -25,6 +25,8 @@ struct SceneView: View {
     @State private var textVisible: Bool = false        // Fades in with each new node
     @State private var showingJournal: Bool = false
     @State private var tapIndicatorOpacity: Double = 1  // Pulsing "tap to continue"
+    @State private var desaturating: Bool = false       // Adyton vision pre-effect
+    @State private var showingActTitle: Bool = false    // Act transition title card
 
     // MARK: Palette — warm ochre / parchment world
 
@@ -43,7 +45,7 @@ struct SceneView: View {
             // --- Scene background ---
             sceneBackground
 
-            // --- Vignette overlay --- 
+            // --- Vignette overlay ---
             vignette
 
             // --- Journal button (top right) ---
@@ -64,6 +66,9 @@ struct SceneView: View {
             }
         }
         .ignoresSafeArea ()
+        // Desaturation fade before vision sessions in the adyton
+        .saturation (desaturating ? 0.0 : 1.0)
+        .animation (.easeInOut (duration: 1.2), value: desaturating)
         // Handoff to VisionView
         .fullScreenCover (
             isPresented: Binding (
@@ -87,11 +92,35 @@ struct SceneView: View {
         .sheet (isPresented: $showingJournal) {
             JournalView (entries: engine.journalEntries)
         }
+        // Act title card
+        .fullScreenCover (isPresented: $showingActTitle) {
+            ActTitleCard (actNumber: engine.currentActNumber) {
+                showingActTitle = false
+            }
+        }
         // Reset text fade on node change
         .onChange (of: engine.currentNode?.id) {
             textVisible = false
             withAnimation (.easeIn (duration: 0.5).delay (0.15)) {
                 textVisible = true
+            }
+            // Desaturate when entering adyton vision trigger node
+            if engine.currentNode?.id == "act1_harvest_vision_trigger" {
+                desaturating = true
+            }
+        }
+        // Re-saturate once vision is dismissed
+        .onChange (of: engine.pendingVisionSession == nil) {
+            if engine.pendingVisionSession == nil {
+                desaturating = false
+            }
+        }
+        // Show act title card on act transition
+        .onChange (of: engine.currentActNumber) {
+            if engine.currentActNumber > 1 {
+                DispatchQueue.main.asyncAfter (deadline: .now () + 1.5) {
+                    showingActTitle = true
+                }
             }
         }
         .onAppear {
@@ -146,15 +175,30 @@ struct SceneView: View {
         VStack (alignment: .leading, spacing: 0) {
             Color.clear.frame (height: 20)
             
-            // Speaker name — only shown when not narrator
+            // Speaker row — portrait + name, only shown when not narrator
             if let speaker = node.speaker, speaker != .narrator {
-                Text (speaker.displayName)
-                    .font (.system (size: 10, weight: .semibold, design: .serif))
-                    .tracking (4)
-                    .foregroundColor (speaker.accentColor)
-                    .padding (.horizontal, 24)
-                    .padding (.top, 20)
-                    .padding (.bottom, 8)
+                HStack (spacing: 12) {
+                    // Portrait — only for characters with art
+                    if let portraitName = speaker.portraitAssetName {
+                        Image (portraitName)
+                            .resizable ()
+                            .scaledToFill ()
+                            .frame (width: 44, height: 44)
+                            .clipShape (RoundedRectangle (cornerRadius: 3))
+                            .overlay (
+                                RoundedRectangle (cornerRadius: 3)
+                                    .stroke (speaker.accentColor.opacity (0.5), lineWidth: 0.8)
+                            )
+                    }
+
+                    Text (speaker.displayName)
+                        .font (.system (size: 10, weight: .semibold, design: .serif))
+                        .tracking (4)
+                        .foregroundColor (speaker.accentColor)
+                }
+                .padding (.horizontal, 24)
+                .padding (.top, 20)
+                .padding (.bottom, 8)
             }
 
             // Divider line — thin, stone-coloured
@@ -373,6 +417,92 @@ struct JournalView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Act Title Card
+
+/// Full-screen chapter break — shown between acts.
+/// Styled as darkness with gold lettering — deliberate, weighty.
+struct ActTitleCard: View {
+    let actNumber: Int
+    let onDismiss: () -> Void
+
+    @State private var visible: Bool = false
+
+    private let parchment = Color (red: 0.96, green: 0.91, blue: 0.82)
+    private let ochre     = Color (red: 0.72, green: 0.52, blue: 0.28)
+
+    private var actTitle: String {
+        switch actNumber {
+        case 1: return "THE VOICE"
+        case 2: return "THE DELEGATIONS"
+        case 3: return "THE PASS"
+        case 4: return "THE SILENCE"
+        default: return ""
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea ()
+
+            VStack (spacing: 20) {
+                Text ("— ACT \(romanNumeral (for: actNumber)) —")
+                    .font (.system (size: 11, weight: .light, design: .serif))
+                    .tracking (6)
+                    .foregroundColor (ochre.opacity (0.7))
+
+                Text (actTitle)
+                    .font (.system (size: 22, weight: .ultraLight, design: .serif))
+                    .tracking (8)
+                    .foregroundColor (parchment.opacity (0.85))
+
+                Rectangle ()
+                    .fill (ochre.opacity (0.3))
+                    .frame (width: 60, height: 0.5)
+                    .padding (.top, 8)
+            }
+            .opacity (visible ? 1 : 0)
+            .animation (.easeIn (duration: 1.2), value: visible)
+
+            // Tap anywhere to continue
+            VStack {
+                Spacer ()
+                Text ("tap to continue")
+                    .font (.system (size: 10, weight: .ultraLight, design: .serif))
+                    .tracking (3)
+                    .foregroundColor (parchment.opacity (visible ? 0.3 : 0))
+                    .animation (.easeIn (duration: 1.2).delay (1.5), value: visible)
+                    .padding (.bottom, 60)
+            }
+        }
+        .contentShape (Rectangle ())
+        .onTapGesture {
+            print ("🟡 ActTitleCard tapped, visible=\(visible)")
+            guard visible else { return }
+            withAnimation (.easeOut (duration: 0.6)) {
+                visible = false
+            }
+            DispatchQueue.main.asyncAfter (deadline: .now () + 0.65) {
+                onDismiss ()
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter (deadline: .now () + 0.3) {
+                visible = true
+            }
+        }
+    }
+
+    private func romanNumeral (for n: Int) -> String {
+        switch n {
+        case 1: return "I"
+        case 2: return "II"
+        case 3: return "III"
+        case 4: return "IV"
+        default: return "\(n)"
         }
     }
 }

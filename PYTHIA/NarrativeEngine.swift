@@ -62,6 +62,15 @@ enum Speaker {
         case .narrator:   return Color (red: 0.55, green: 0.50, blue: 0.42)   // muted stone
         }
     }
+
+    /// Asset catalogue name for portrait image — nil if no portrait exists yet
+    var portraitAssetName: String? {
+        switch self {
+        case .demetrios:  return "portrait_demetrios"
+        case .lyra:       return "portrait_lyra"
+        default:          return nil
+        }
+    }
 }
 
 /// A player choice within a dialogue node
@@ -78,7 +87,7 @@ struct DialogueChoice: Identifiable {
 enum NodeTrigger {
     case beginVisionSession (sessionID: String, fragments: [Fragment])
     case enterLocation (LocationID)
-    case openJournal
+    case openJournal (JournalEntry)
     case actTransition (toAct: Int)
     case endGame
 }
@@ -109,6 +118,9 @@ class NarrativeEngine: ObservableObject {
 
     /// True during scene transitions (fade out/in)
     @Published private(set) var isTransitioning: Bool = false
+
+    /// Current act number — observed by SceneView to trigger title card
+    @Published private(set) var currentActNumber: Int = 1
 
     /// The journal — accumulated narrative entries the player can read
     @Published private(set) var journalEntries: [JournalEntry] = []
@@ -155,6 +167,10 @@ class NarrativeEngine: ObservableObject {
         withAnimation (.easeInOut (duration: 0.4)) {
             currentNode = node
         }
+
+        // Auto-save after every node advance
+        knowledge.lastNodeID = node.id
+        knowledge.save ()
     }
 
     /// Called when the player taps to advance (no choices)
@@ -226,11 +242,12 @@ class NarrativeEngine: ObservableObject {
                 currentLocation = location
             }
 
-        case .openJournal:
-            break   // SceneView observes journalEntries and handles presentation
+        case .openJournal (let entry):
+            addJournalEntry (entry)
 
         case .actTransition (let act):
             knowledge.currentAct = act
+            currentActNumber = act
 
         case .endGame:
             break   // Parent view handles this
