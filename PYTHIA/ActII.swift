@@ -663,7 +663,7 @@ enum ActII {
             speaker: .narrator,
             text: "— ACT III —\n\nTHE PASS",
             choices: nil,
-            nextNodeID: nil,    // Will link to act3_open_01 when Act III is built
+            nextNodeID: "act3_open_01",    
             trigger: .actTransition (toAct: 3),
             teaches: nil
         ),

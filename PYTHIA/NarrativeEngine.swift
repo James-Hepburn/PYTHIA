@@ -69,6 +69,7 @@ enum Speaker {
         case .demetrios:  return "portrait_demetrios"
         case .lyra:       return "portrait_lyra"
         case .nikomedes: return "portrait_nikomedes"
+        case .leonidas: return "portrait_leonidas"
         default:          return nil
         }
     }
