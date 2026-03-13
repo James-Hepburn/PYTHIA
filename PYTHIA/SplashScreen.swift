@@ -284,6 +284,5 @@ struct SplashScreen: View {
 
 #Preview {
     SplashScreen (onBegin: {
-        print ("Begin tapped")
     })
 }

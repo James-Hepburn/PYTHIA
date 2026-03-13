@@ -407,7 +407,7 @@ enum ActI {
         DialogueNode (
             id: "act1_journal_entry",
             speaker: .mara,
-            text: "You write: my mother's hands. The way she would check the grain by pressing her thumb into it. How she never needed a god to tell her when things were ready.\n\nYou stare at what you have written for a long time.",
+            text: "You write: My mother's hands. The way she would check the grain by pressing her thumb into it. How she never needed a god to tell her when things were ready.\n\nYou stare at what you have written for a long time.",
             choices: nil,
             nextNodeID: "act1_nikomedes_transition",
             trigger: .openJournal (
@@ -515,7 +515,7 @@ enum ActI {
             speaker: .narrator,
             text: "— ACT II —\n\nTHE DELEGATIONS",
             choices: nil,
-            nextNodeID: nil,    // Will link to act2_open_01 when Act II is built
+            nextNodeID: "act2_open_01",
             trigger: .actTransition (toAct: 2),
             teaches: nil
         ),

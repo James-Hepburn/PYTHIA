@@ -405,6 +405,5 @@ struct FragmentCell: View {
             )
         ]
     ) { selectedIDs in
-        print ("Interpretation: \(selectedIDs)")
     }
 }

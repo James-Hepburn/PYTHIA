@@ -25,7 +25,6 @@ struct SceneView: View {
     @State private var textVisible: Bool = false        // Fades in with each new node
     @State private var showingJournal: Bool = false
     @State private var tapIndicatorOpacity: Double = 1  // Pulsing "tap to continue"
-    @State private var desaturating: Bool = false       // Adyton vision pre-effect
     @State private var showingActTitle: Bool = false    // Act transition title card
 
     // MARK: Palette — warm ochre / parchment world
@@ -66,9 +65,9 @@ struct SceneView: View {
             }
         }
         .ignoresSafeArea ()
-        // Desaturation fade before vision sessions in the adyton
-        .saturation (desaturating ? 0.0 : 1.0)
-        .animation (.easeInOut (duration: 1.2), value: desaturating)
+        // Desaturation fade before vision sessions
+        .saturation(engine.pendingVisionSession != nil ? 0.0 : 1.0)
+        .animation (.easeInOut (duration: 1.2), value: engine.pendingVisionSession == nil)
         // Handoff to VisionView
         .fullScreenCover (
             isPresented: Binding (
@@ -103,16 +102,6 @@ struct SceneView: View {
             textVisible = false
             withAnimation (.easeIn (duration: 0.5).delay (0.15)) {
                 textVisible = true
-            }
-            // Desaturate when entering adyton vision trigger node
-            if engine.currentNode?.id == "act1_harvest_vision_trigger" {
-                desaturating = true
-            }
-        }
-        // Re-saturate once vision is dismissed
-        .onChange (of: engine.pendingVisionSession == nil) {
-            if engine.pendingVisionSession == nil {
-                desaturating = false
             }
         }
         // Show act title card on act transition
@@ -480,7 +469,6 @@ struct ActTitleCard: View {
         }
         .contentShape (Rectangle ())
         .onTapGesture {
-            print ("🟡 ActTitleCard tapped, visible=\(visible)")
             guard visible else { return }
             withAnimation (.easeOut (duration: 0.6)) {
                 visible = false
@@ -511,6 +499,6 @@ struct ActTitleCard: View {
 
 #Preview {
     let knowledge = KnowledgeState ()
-    let engine = NarrativeEngine (nodes: ActI.nodes, knowledge: knowledge)
+    let engine = NarrativeEngine (nodes: ActI.nodes + ActII.nodes, knowledge: knowledge)
     return SceneView (engine: engine)
 }

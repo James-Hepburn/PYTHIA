@@ -68,6 +68,7 @@ enum Speaker {
         switch self {
         case .demetrios:  return "portrait_demetrios"
         case .lyra:       return "portrait_lyra"
+        case .nikomedes: return "portrait_nikomedes"
         default:          return nil
         }
     }
@@ -150,7 +151,6 @@ class NarrativeEngine: ObservableObject {
     /// Advance to a specific node ID. Called by tap-to-advance and choice selection.
     func advance (to nodeID: String) {
         guard let node = nodeGraph[nodeID] else {
-            print ("⚠️ NarrativeEngine: node '\(nodeID)' not found")
             return
         }
 

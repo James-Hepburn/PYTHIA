@@ -17,7 +17,7 @@ struct ContentView: View {
     @StateObject private var engine: NarrativeEngine = {
         let k = KnowledgeState ()
         return NarrativeEngine (
-            nodes: ActI.nodes,
+            nodes: ActI.nodes + ActII.nodes,
             knowledge: k,
             startNodeID: nil        // always starts fresh for now
         )
