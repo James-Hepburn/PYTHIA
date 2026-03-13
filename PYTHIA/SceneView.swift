@@ -499,6 +499,6 @@ struct ActTitleCard: View {
 
 #Preview {
     let knowledge = KnowledgeState ()
-    let engine = NarrativeEngine (nodes: ActI.nodes + ActII.nodes + ActIII.nodes, knowledge: knowledge)
+    let engine = NarrativeEngine (nodes: ActI.nodes + ActII.nodes + ActIII.nodes + ActIV.nodes, knowledge: knowledge)
     return SceneView (engine: engine)
 }
