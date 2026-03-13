@@ -103,6 +103,11 @@ struct SceneView: View {
             withAnimation (.easeIn (duration: 0.5).delay (0.15)) {
                 textVisible = true
             }
+            
+            // Route to ending
+            if engine.currentNode?.id == "epilogue_ending_branch" {
+                engine.routeToEnding ()
+            }
         }
         // Show act title card on act transition
         .onChange (of: engine.currentActNumber) {
@@ -499,6 +504,6 @@ struct ActTitleCard: View {
 
 #Preview {
     let knowledge = KnowledgeState ()
-    let engine = NarrativeEngine (nodes: ActI.nodes + ActII.nodes + ActIII.nodes + ActIV.nodes, knowledge: knowledge)
+    let engine = NarrativeEngine (nodes: ActI.nodes + ActII.nodes + ActIII.nodes + ActIV.nodes + Epilogue.nodes, knowledge: knowledge)
     return SceneView (engine: engine)
 }

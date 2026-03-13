@@ -719,7 +719,7 @@ enum ActIV {
             speaker: .narrator,
             text: "— EPILOGUE —\n\nTHE FLAME",
             choices: nil,
-            nextNodeID: nil,    // Links to epilogue_open_01
+            nextNodeID: "epilogue_open_01",   
             trigger: .actTransition (toAct: 5),
             teaches: nil
         ),

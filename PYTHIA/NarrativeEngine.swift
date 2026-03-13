@@ -254,6 +254,18 @@ class NarrativeEngine: ObservableObject {
             break   // Parent view handles this
         }
     }
+    
+    // MARK: - Ending Handling
+    
+    func routeToEnding () {
+        let ending = knowledge.resolveEnding ()
+        switch ending {
+        case .theProphet:     advance (to: "epilogue_ending_prophet_01")
+        case .theMartyr:      advance (to: "epilogue_ending_martyr_01")
+        case .thePhilosopher: advance (to: "epilogue_ending_philosopher_01")
+        case .theHollow:      advance (to: "epilogue_ending_hollow_01")
+        }
+    }
 }
 
 // MARK: - Journal Entry
