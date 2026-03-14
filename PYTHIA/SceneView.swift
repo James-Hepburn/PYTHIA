@@ -20,6 +20,9 @@ import SwiftUI
 struct SceneView: View {
     @ObservedObject var engine: NarrativeEngine
 
+    /// Audio system — injected from ContentView via environmentObject.
+    @EnvironmentObject private var audio: AudioManager
+
     // MARK: Local state
 
     @State private var textVisible: Bool = false        // Fades in with each new node
@@ -74,13 +77,14 @@ struct SceneView: View {
         // animates both INTO vision (world drains) and OUT of it (world
         // slowly returns to colour after VisionView dismisses).
         .saturation (isDesaturated ? 0.0 : 1.0)
-        .animation (.easeInOut (duration: 1.4), value: isDesaturated)
-        // Desaturate when a vision session begins
+        // Desaturate and begin vision audio when a session starts
         .onChange (of: engine.pendingVisionSession == nil) {
             if engine.pendingVisionSession != nil {
+                // Vision starting — drain colour and bring up vision drone
                 withAnimation (.easeInOut (duration: 1.2)) {
                     isDesaturated = true
                 }
+                audio.beginVision ()
             }
         }
         // Handoff to VisionView
@@ -93,14 +97,15 @@ struct SceneView: View {
             if let session = engine.pendingVisionSession {
                 VisionView (fragments: session.fragments) { selectedIDs in
                     // Complete the session — engine clears pendingVisionSession,
-                    // dismissing the cover. Colour is restored after a short pause
-                    // so the world doesn't flash back mid-dismiss.
+                    // dismissing the cover. Colour and audio are restored after
+                    // a short pause so the cover finishes its own dismiss first.
                     engine.visionSessionCompleted (
                         sessionID: session.sessionID,
                         selectedFragmentIDs: selectedIDs
                     )
                     DispatchQueue.main.asyncAfter (deadline: .now () + 0.6) {
                         isDesaturated = false
+                        audio.endVision ()
                     }
                 }
             }
@@ -126,13 +131,18 @@ struct SceneView: View {
                 showingActTitle = false
             }
         }
-        // Reset text fade on node change
+        // Reset text fade on node change — also drive location audio here
+        // since onChange(of: currentLocation) can be unreliable when the
+        // location change is wrapped in a withAnimation block in the engine.
         .onChange (of: engine.currentNode?.id) {
             textVisible = false
             withAnimation (.easeIn (duration: 0.5).delay (0.15)) {
                 textVisible = true
             }
-            
+
+            // Drive location ambience on every node change
+            audio.transitionToLocation (engine.currentLocation)
+
             // Route to ending
             if engine.currentNode?.id == "epilogue_ending_branch" {
                 engine.routeToEnding ()
@@ -153,6 +163,11 @@ struct SceneView: View {
                     showingActTitle = true
                 }
             }
+            audio.transitionToAct (engine.currentActNumber)
+        }
+        // Keep currentLocation onChange as a fallback for any edge cases
+        .onChange (of: engine.currentLocation) {
+            audio.transitionToLocation (engine.currentLocation)
         }
         .onAppear {
             withAnimation (.easeIn (duration: 0.6)) {
@@ -460,6 +475,7 @@ struct ActTitleCard: View {
     let actNumber: Int
     let onDismiss: () -> Void
 
+    @EnvironmentObject private var audio: AudioManager
     @State private var visible: Bool = false
 
     private let parchment = Color (red: 0.96, green: 0.91, blue: 0.82)
@@ -512,6 +528,8 @@ struct ActTitleCard: View {
         .contentShape (Rectangle ())
         .onTapGesture {
             guard visible else { return }
+            audio.stopActCardMusic (fadeDuration: 0.6)
+            audio.resumeGameAudio (fadeDuration: 1.2)
             withAnimation (.easeOut (duration: 0.6)) {
                 visible = false
             }
@@ -522,6 +540,8 @@ struct ActTitleCard: View {
         .onAppear {
             DispatchQueue.main.asyncAfter (deadline: .now () + 0.3) {
                 visible = true
+                audio.pauseGameAudio (fadeDuration: 0.8)
+                audio.playActCardMusic ()
             }
         }
     }

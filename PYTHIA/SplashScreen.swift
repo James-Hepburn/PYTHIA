@@ -11,6 +11,8 @@ struct SplashScreen: View {
     var onNewGame: () -> Void
     var onContinue: () -> Void
 
+    @EnvironmentObject private var audio: AudioManager
+
     // MARK: - Animation state
 
     @State private var flameVisible:     Bool = false
@@ -167,6 +169,7 @@ struct SplashScreen: View {
     }
 
     private func fadeOut (completion: @escaping () -> Void) {
+        audio.stopSplashMusic (fadeDuration: 0.8)
         withAnimation (.easeIn (duration: 0.8)) {
             beginPulse = 0
         }
@@ -258,6 +261,7 @@ struct SplashScreen: View {
     // MARK: - Sequence
 
     private func runSequence () {
+        audio.playSplashMusic ()
         DispatchQueue.main.asyncAfter (deadline: .now () + 0.4) {
             flameVisible = true
             flamePulse = true

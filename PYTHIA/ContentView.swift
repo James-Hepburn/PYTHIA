@@ -36,6 +36,9 @@ struct ContentView: View {
         )
     } ()
 
+    /// Audio system — owned here so it lives for the full app lifetime.
+    @StateObject private var audio = AudioManager ()
+
     // MARK: Body
 
     var body: some View {
@@ -52,6 +55,7 @@ struct ContentView: View {
                     withAnimation (.easeInOut (duration: 0.8)) {
                         phase = .game
                     }
+                    audio.startGameAudio ()
                 }
                 .transition (.opacity)
                 .zIndex (1)
@@ -64,6 +68,7 @@ struct ContentView: View {
                     withAnimation (.easeInOut (duration: 0.8)) {
                         phase = .game
                     }
+                    audio.startGameAudio ()
                 }
                 .transition (.opacity)
                 .zIndex (1)
@@ -82,14 +87,16 @@ struct ContentView: View {
         }
         .ignoresSafeArea ()
         .preferredColorScheme (.dark)
+        .environmentObject (audio)
     }
 
     // MARK: - Actions
 
-    /// Start a fresh playthrough — delete any existing save, reset engine.
+    /// Start a fresh playthrough — delete any existing save, reset engine and audio.
     private func handleNewGame () {
         KnowledgeState.deleteSave ()
         engine.resetToStart ()
+        audio.resetAudio ()
         withAnimation (.easeInOut (duration: 0.6)) {
             phase = .actCard
         }
