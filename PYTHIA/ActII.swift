@@ -497,21 +497,38 @@ enum ActII {
             speaker: .narrator,
             text: "The Theban delegation arrives the following morning. Their spokesman is a general named Pausanias — older than Nikomedes, less polished, more frightened.\n\nThebes is caught between Athens and the Persian advance. Running is not an option. Making peace with Persia might be.",
             choices: nil,
-            nextNodeID: "act2_theban_01",
+            nextNodeID: "act2_theban_vision_trigger",
             trigger: nil,
             teaches: .receivedThebanDelegation
         ),
 
+        // Vision trigger — fires before Pausanias speaks his question
         DialogueNode (
-            id: "act2_theban_01",
+            id: "act2_theban_vision_trigger",
             speaker: .narrator,
-            text: "\"Great Oracle.\" Pausanias is a man choosing his words with enormous care. \"Thebes asks only this — is there a path that preserves our people? Any path. The god sees all roads. We need only one.\"",
+            text: "\"Great Oracle.\" Pausanias is a man choosing his words with enormous care.\n\nBefore he finishes, something opens. The smoke from the laurel branches thickens and the adyton contracts around you.",
+            choices: nil,
+            nextNodeID: nil,
+            trigger: .beginVisionSession (
+                sessionID: "theban_roads",
+                fragments: ActII.thebanFragments
+            ),
+            teaches: nil
+        ),
+
+        // Return node — Pausanias has now spoken; Mara surfaces with fragments in hand
+        DialogueNode (
+            id: "theban_roads_return",
+            speaker: .narrator,
+            text: "You return. Pausanias is still speaking.\n\n\"— is there a path that preserves our people? Any path. The god sees all roads. We need only one.\"\n\nHe does not know you were already gone.",
             choices: nil,
             nextNodeID: "act2_theban_choice",
             trigger: nil,
             teaches: nil
         ),
 
+        // Path-level choice — standard, NOT fragment-derived.
+        // Routes to wording nodes where fragments take over.
         DialogueNode (
             id: "act2_theban_choice",
             speaker: .narrator,
@@ -519,25 +536,25 @@ enum ActII {
             choices: [
                 DialogueChoice (
                     id: "theban_hard_truth",
-                    text: "\"The god shows no path that preserves a man by selling his neighbours. That is not a road Apollo walks.\"",
+                    text: "Speak the hard truth — there is no road that leads through betrayal.",
                     requires: nil,
-                    leadsTo: "act2_theban_hard",
+                    leadsTo: "act2_theban_wording_hard",
                     teaches: .spokeDirectTruthAtPersonalCost,
                     axisNote: "Integrity +2 — direct moral clarity"
                 ),
                 DialogueChoice (
                     id: "theban_gentle",
-                    text: "\"Some roads that look open are closed before you reach them. The god counsels patience over speed.\"",
+                    text: "Speak gently — counsel patience, let him hear what he needs to hear.",
                     requires: nil,
-                    leadsTo: "act2_theban_gentle",
+                    leadsTo: "act2_theban_wording_gentle",
                     teaches: .usedOracularAmbiguityAsShield,
                     axisNote: "Integrity -1 — not quite a lie but not truth either"
                 ),
                 DialogueChoice (
                     id: "theban_uncertain",
-                    text: "\"I cannot see the road you are describing. That may be answer enough.\"",
+                    text: "Admit the limits — tell him you cannot see the road he is describing.",
                     requires: nil,
-                    leadsTo: "act2_theban_uncertain",
+                    leadsTo: "act2_theban_wording_uncertain",
                     teaches: nil,
                     axisNote: "Neutral — honest about the limits of the vision"
                 ),
@@ -546,6 +563,206 @@ enum ActII {
             trigger: nil,
             teaches: nil
         ),
+
+        // --- HARD TRUTH WORDING ---
+        DialogueNode (
+            id: "act2_theban_wording_hard",
+            speaker: .mara,
+            text: "The fragments give the truth its shape.",
+            choices: [
+                DialogueChoice (
+                    id: "theban_hard_walls",
+                    text: "\"The god shows walls on every side. Not one of them yields. The road you are looking for is not in this vision.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — walls fragment, enclosed",
+                    sourceFragmentID: "theban_walls"
+                ),
+                DialogueChoice (
+                    id: "theban_hard_crossroads",
+                    text: "\"I saw a crossroads where one path was already ash. The god shows no path that preserves a man by selling his neighbours.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — crossroads fragment, closed road",
+                    sourceFragmentID: "theban_crossroads"
+                ),
+                DialogueChoice (
+                    id: "theban_hard_fire",
+                    text: "\"Fire from two directions at once. There is no road between them that does not pass through it.\"\n\n\"The god does not show me a way through. Only that there is none.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — fire fragment, no escape",
+                    sourceFragmentID: "theban_fire"
+                ),
+                DialogueChoice (
+                    id: "theban_hard_crowd",
+                    text: "\"I saw a crowd that chose together — and what they chose, they carried together afterward.\"\n\n\"That is not a road Apollo walks. It is not a road Apollo shows.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — crowd fragment, collective consequence",
+                    sourceFragmentID: "theban_crowd"
+                ),
+                DialogueChoice (
+                    id: "theban_hard_word",
+                    text: "\"The word the god gave me was REMAINS.\"\n\nYou hold his eyes.\n\n\"What remains after the road you are describing — I will not speak aloud.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — REMAINS fragment, most chilling",
+                    sourceFragmentID: "theban_remains"
+                ),
+                DialogueChoice (
+                    id: "theban_hard_mountain",
+                    text: "\"I saw mountains that do not move for anyone.\"\n\n\"The god is not showing me a path through them. He is showing me that they are there.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_hard",
+                    teaches: nil,
+                    axisNote: "Hard — mountain fragment, immovable geography",
+                    sourceFragmentID: "theban_mountain"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- GENTLE WORDING ---
+        DialogueNode (
+            id: "act2_theban_wording_gentle",
+            speaker: .mara,
+            text: "The fragments soften the truth into something he can carry home.",
+            choices: [
+                DialogueChoice (
+                    id: "theban_gentle_walls",
+                    text: "\"The god shows walls — but walls are also shelter. What encloses can also protect. Patience over speed.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — walls fragment, reframed",
+                    sourceFragmentID: "theban_walls"
+                ),
+                DialogueChoice (
+                    id: "theban_gentle_crossroads",
+                    text: "\"Some roads that look open are closed before you reach them. The god counsels patience over speed.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — crossroads fragment",
+                    sourceFragmentID: "theban_crossroads"
+                ),
+                DialogueChoice (
+                    id: "theban_gentle_season",
+                    text: "\"The season turns. What is impossible now may open later. The god does not close all doors at once.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — season fragment, deferred hope",
+                    sourceFragmentID: "theban_season"
+                ),
+                DialogueChoice (
+                    id: "theban_gentle_crowd",
+                    text: "\"The god shows a people who endure — who decide together and survive together. Thebes has done this before.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — crowd fragment, collective survival",
+                    sourceFragmentID: "theban_crowd"
+                ),
+                DialogueChoice (
+                    id: "theban_gentle_mountain",
+                    text: "\"The mountains do not judge those who shelter in their shadow. The god counsels waiting for the season to pass.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — mountain fragment, shelter reading",
+                    sourceFragmentID: "theban_mountain"
+                ),
+                DialogueChoice (
+                    id: "theban_gentle_water",
+                    text: "\"Still water finds its own level. The god shows Thebes enduring — not how, not yet. But enduring.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_gentle",
+                    teaches: nil,
+                    axisNote: "Gentle — still water fragment, comfort",
+                    sourceFragmentID: "theban_water"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- UNCERTAIN WORDING ---
+        DialogueNode (
+            id: "act2_theban_wording_uncertain",
+            speaker: .mara,
+            text: "The fragments give honesty its shape.",
+            choices: [
+                DialogueChoice (
+                    id: "theban_uncertain_walls",
+                    text: "\"The god shows me walls. I cannot see through them. I cannot tell you what is on the other side of the road you are describing.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — walls fragment",
+                    sourceFragmentID: "theban_walls"
+                ),
+                DialogueChoice (
+                    id: "theban_uncertain_crossroads",
+                    text: "\"I saw a crossroads. I cannot tell you which path you stand on, or which path leads where you need to go.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — crossroads fragment",
+                    sourceFragmentID: "theban_crossroads"
+                ),
+                DialogueChoice (
+                    id: "theban_uncertain_fire",
+                    text: "\"I cannot see the road you are describing. The vision was fire — from more than one direction. That may be answer enough.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — fire fragment, implicit warning",
+                    sourceFragmentID: "theban_fire"
+                ),
+                DialogueChoice (
+                    id: "theban_uncertain_remains",
+                    text: "\"The god gave me a word: REMAINS. I do not know yet what it means for Thebes. I am not willing to guess.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — REMAINS fragment, honest opacity",
+                    sourceFragmentID: "theban_remains"
+                ),
+                DialogueChoice (
+                    id: "theban_uncertain_season",
+                    text: "\"The vision shows a season turning — but I cannot tell you whether Thebes is in it, or past it, or before it.\"\n\nYou look at him.\n\n\"That may be answer enough.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — season fragment",
+                    sourceFragmentID: "theban_season"
+                ),
+                DialogueChoice (
+                    id: "theban_uncertain_water",
+                    text: "\"I saw still water. The god does not always speak in roads. I cannot see the road you are describing. That may be answer enough.\"",
+                    requires: nil,
+                    leadsTo: "act2_theban_uncertain",
+                    teaches: nil,
+                    axisNote: "Uncertain — still water fragment",
+                    sourceFragmentID: "theban_water"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // Response nodes — unchanged
 
         DialogueNode (
             id: "act2_theban_hard",
@@ -586,47 +803,63 @@ enum ActII {
             speaker: .narrator,
             text: "The last delegation of the day is from a small island city-state in the Aegean. They have no army worth speaking of. They have fishing boats and a harbour and four thousand people.\n\nTheir spokesman is barely older than Lyra.",
             choices: nil,
-            nextNodeID: "act2_aegean_01",
+            nextNodeID: "act2_aegean_vision_trigger",
             trigger: nil,
             teaches: .receivedAegeanDelegation
         ),
 
+        // Vision fires as he approaches — before he speaks
         DialogueNode (
-            id: "act2_aegean_01",
+            id: "act2_aegean_vision_trigger",
             speaker: .narrator,
-            text: "\"Oracle.\" His voice is steady. He has practised this. \"We have no allies who will come for us. If the Persian fleet moves through the Aegean, we cannot fight. Our council asks — should we flee now, before the season closes, or is there reason to stay?\"",
+            text: "He opens his mouth to speak.\n\nThe adyton takes you before he does.",
+            choices: nil,
+            nextNodeID: nil,
+            trigger: .beginVisionSession (
+                sessionID: "aegean_island",
+                fragments: ActII.aegeanFragments
+            ),
+            teaches: nil
+        ),
+
+        // Return node — he has now asked his question
+        DialogueNode (
+            id: "aegean_island_return",
+            speaker: .narrator,
+            text: "You return. He is still speaking — steady, practiced.\n\n\"— should we flee now, before the season closes, or is there reason to stay?\"\n\nHis hands are folded in his lap. He is trying very hard not to show how afraid he is.",
             choices: nil,
             nextNodeID: "act2_aegean_choice",
             trigger: nil,
             teaches: nil
         ),
 
+        // Path-level choice — standard, NOT fragment-derived
         DialogueNode (
             id: "act2_aegean_choice",
             speaker: .narrator,
-            text: "This is simpler than it looks. He is asking you to tell four thousand people whether to abandon their homes.\n\nYou think of the burning ships. You think of the narrow pass you keep seeing at the edges of visions, just out of focus.",
+            text: "He is asking you to tell four thousand people whether to abandon their homes.\n\nYou have what you saw.",
             choices: [
                 DialogueChoice (
                     id: "aegean_flee",
-                    text: "\"Go. The sea will be safer than the shore this season. Do not wait for confirmation.\"",
+                    text: "Tell them to go — clearly, without qualification.",
                     requires: nil,
-                    leadsTo: "act2_aegean_flee",
+                    leadsTo: "act2_aegean_wording_flee",
                     teaches: .spokeDirectTruthAtPersonalCost,
                     axisNote: "Integrity +2 — clear, actionable, costly"
                 ),
                 DialogueChoice (
                     id: "aegean_stay",
-                    text: "\"The god does not counsel abandonment of one's hearth without cause. Await developments.\"",
+                    text: "Counsel them to stay — Demetrios wants stability, not evacuations.",
                     requires: nil,
-                    leadsTo: "act2_aegean_stay",
+                    leadsTo: "act2_aegean_wording_stay",
                     teaches: .capitulatedToDemetriosWishes,
-                    axisNote: "Integrity -2 — Demetrios wants stability, not evacuations"
+                    axisNote: "Integrity -2"
                 ),
                 DialogueChoice (
                     id: "aegean_prepare",
-                    text: "\"Prepare your vessels but do not yet sail. The answer will be clearer when the season turns.\"",
+                    text: "Give them something in between — prepare but do not yet sail.",
                     requires: nil,
-                    leadsTo: "act2_aegean_prepare",
+                    leadsTo: "act2_aegean_wording_prepare",
                     teaches: nil,
                     axisNote: "Neutral — buys time, gives no real guidance"
                 ),
@@ -635,6 +868,206 @@ enum ActII {
             trigger: nil,
             teaches: nil
         ),
+
+        // --- FLEE WORDING ---
+        DialogueNode (
+            id: "act2_aegean_wording_flee",
+            speaker: .mara,
+            text: "The fragments give the urgency its words.",
+            choices: [
+                DialogueChoice (
+                    id: "aegean_flee_harbour",
+                    text: "\"I saw your harbour empty. The god showed it to me after — when the choice had already been made, and the choice was right.\"\n\n\"Go.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — harbour fragment, prophetic past tense",
+                    sourceFragmentID: "aegean_harbour"
+                ),
+                DialogueChoice (
+                    id: "aegean_flee_water",
+                    text: "\"The sea will be safer than the shore this season. I saw open water and I saw people on it — moving away from something that was coming.\"\n\n\"Do not wait for confirmation.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — open water fragment, urgency",
+                    sourceFragmentID: "aegean_water"
+                ),
+                DialogueChoice (
+                    id: "aegean_flee_house",
+                    text: "\"I saw an empty house. The god showed it standing — undamaged, waiting.\"\n\n\"The house survives if the people are not in it. Go. You can come back to it.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — empty house fragment, most personal",
+                    sourceFragmentID: "aegean_house"
+                ),
+                DialogueChoice (
+                    id: "aegean_flee_children",
+                    text: "\"I saw children.\"\n\nYou hold his eyes.\n\n\"Go. Before the season closes.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — children fragment, most direct",
+                    sourceFragmentID: "aegean_children"
+                ),
+                DialogueChoice (
+                    id: "aegean_flee_salt",
+                    text: "\"The smell of salt and open wind. The god shows a people who moved when they needed to.\"\n\n\"That time is now.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — salt air fragment",
+                    sourceFragmentID: "aegean_salt"
+                ),
+                DialogueChoice (
+                    id: "aegean_flee_word",
+                    text: "\"The word the god gave me was GO.\"\n\nNothing else. You let that be enough.",
+                    requires: nil,
+                    leadsTo: "act2_aegean_flee",
+                    teaches: nil,
+                    axisNote: "Flee — GO fragment, starkest",
+                    sourceFragmentID: "aegean_go"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- STAY WORDING ---
+        DialogueNode (
+            id: "act2_aegean_wording_stay",
+            speaker: .mara,
+            text: "The fragments give the counsel its shape.",
+            choices: [
+                DialogueChoice (
+                    id: "aegean_stay_harbour",
+                    text: "\"The god shows your harbour — busy, purposeful. The god does not counsel abandonment of one's hearth without cause.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — harbour fragment",
+                    sourceFragmentID: "aegean_harbour"
+                ),
+                DialogueChoice (
+                    id: "aegean_stay_house",
+                    text: "\"The god shows a house that stands. Those who tend what is theirs — the god does not abandon them. Await developments.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — house fragment",
+                    sourceFragmentID: "aegean_house"
+                ),
+                DialogueChoice (
+                    id: "aegean_stay_salt",
+                    text: "\"The salt air is your element. The god does not counsel those who know the sea to flee from it. Await developments.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — salt air fragment",
+                    sourceFragmentID: "aegean_salt"
+                ),
+                DialogueChoice (
+                    id: "aegean_stay_water",
+                    text: "\"I saw calm water. The god does not show storm or ruin for your island — not yet. Await developments.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — open water fragment, false calm",
+                    sourceFragmentID: "aegean_water"
+                ),
+                DialogueChoice (
+                    id: "aegean_stay_children",
+                    text: "\"I saw children at their ordinary work. The god shows ordinary life continuing. Do not abandon the hearth without cause.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — children fragment, false normalcy",
+                    sourceFragmentID: "aegean_children"
+                ),
+                DialogueChoice (
+                    id: "aegean_stay_word",
+                    text: "\"The word the god gave me was not a word for leaving.\"\n\n\"Await developments.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_stay",
+                    teaches: nil,
+                    axisNote: "Stay — GO fragment withheld, most dishonest",
+                    sourceFragmentID: "aegean_go"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- PREPARE WORDING ---
+        DialogueNode (
+            id: "act2_aegean_wording_prepare",
+            speaker: .mara,
+            text: "Something in between. The fragments give it its texture.",
+            choices: [
+                DialogueChoice (
+                    id: "aegean_prepare_harbour",
+                    text: "\"The god shows your harbour ready — not empty, not full. Prepare your vessels but do not yet sail. The answer will be clearer when the season turns.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — harbour fragment",
+                    sourceFragmentID: "aegean_harbour"
+                ),
+                DialogueChoice (
+                    id: "aegean_prepare_water",
+                    text: "\"The sea is open — for now. The god counsels readiness without urgency. Prepare your vessels. Watch the season.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — open water fragment",
+                    sourceFragmentID: "aegean_water"
+                ),
+                DialogueChoice (
+                    id: "aegean_prepare_house",
+                    text: "\"The god shows a house that can be left quickly and returned to. Prepare to go — but do not go yet. The season will tell you when.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — house fragment",
+                    sourceFragmentID: "aegean_house"
+                ),
+                DialogueChoice (
+                    id: "aegean_prepare_salt",
+                    text: "\"The salt wind has not yet turned. The god counsels those who know the sea to read it. Prepare your vessels. It will tell you before I can.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — salt air fragment, defers to their own knowledge",
+                    sourceFragmentID: "aegean_salt"
+                ),
+                DialogueChoice (
+                    id: "aegean_prepare_children",
+                    text: "\"I saw children. The god shows them safe — but the safety is not passive. It requires a decision, made in time.\"\n\n\"Prepare. Do not yet sail.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — children fragment, most protective",
+                    sourceFragmentID: "aegean_children"
+                ),
+                DialogueChoice (
+                    id: "aegean_prepare_word",
+                    text: "\"The god gave me a word. I am not yet ready to speak it.\"\n\n\"Prepare your vessels. When the season turns, you will not need to ask again.\"",
+                    requires: nil,
+                    leadsTo: "act2_aegean_prepare",
+                    teaches: nil,
+                    axisNote: "Prepare — GO fragment withheld, cryptic",
+                    sourceFragmentID: "aegean_go"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // Response nodes — unchanged
 
         DialogueNode (
             id: "act2_aegean_flee",
@@ -973,6 +1406,113 @@ enum ActII {
             type: .word (text: "AFTER"),
             significance: "not the event — what it makes possible",
             dialogueOption: "The god did not show me the battle. He showed me what comes after. I do not yet know what it costs to reach it."
+        ),
+    ]
+
+    // MARK: - Vision Fragments: The Theban Roads
+    //
+    // Six fragments — morally heavy, geographically trapped.
+    // Thebes is caught between mountains, hostile city-states, and an
+    // encroaching empire. The fragments should feel like walls and closed
+    // roads rather than open possibilities.
+    // dialogueOption stores the honest/direct reading; gentle and uncertain
+    // variants are authored inline in the wording nodes above.
+
+    static let thebanFragments: [Fragment] = [
+        Fragment (
+            id: "theban_walls",
+            type: .image (symbolName: "square.fill"),
+            significance: "enclosed on every side — the world narrowed to a room with no door",
+            dialogueOption: "The god shows walls on every side. Not one of them yields. The road you are looking for is not in this vision."
+        ),
+        Fragment (
+            id: "theban_crossroads",
+            type: .image (symbolName: "arrow.triangle.branch"),
+            significance: "a choice already made — one path was ash before you arrived",
+            dialogueOption: "I saw a crossroads where one path was already ash. The god shows no path that preserves a man by selling his neighbours."
+        ),
+        Fragment (
+            id: "theban_fire",
+            type: .colour (hue: Color (red: 0.80, green: 0.28, blue: 0.10)),
+            significance: "fire from two directions at once — no road between them",
+            dialogueOption: "Fire from two directions at once. There is no road between them that does not pass through it."
+        ),
+        Fragment (
+            id: "theban_crowd",
+            type: .sensation (text: "many people\ndeciding something\ntogether"),
+            significance: "a people choosing — and carrying what they chose together afterward",
+            dialogueOption: "I saw a crowd that chose together — and what they chose, they carried together afterward. That is not a road Apollo shows."
+        ),
+        Fragment (
+            id: "theban_remains",
+            type: .word (text: "REMAINS"),
+            significance: "not what survives — what is left when everything else is gone",
+            dialogueOption: "The word the god gave me was REMAINS. What remains after the road you are describing — I will not speak aloud."
+        ),
+        Fragment (
+            id: "theban_mountain",
+            type: .sensation (text: "stone that does not\nmove for anyone"),
+            significance: "indifferent weight — geography as judgment",
+            dialogueOption: "I saw mountains that do not move for anyone. The god is not showing me a path through them. He is showing me that they are there."
+        ),
+        Fragment (
+            id: "theban_season",
+            type: .word (text: "AFTER"),
+            significance: "the season that follows — unclear whether Thebes is in it",
+            dialogueOption: "The season turns. What is impossible now may open later. The god does not close all doors at once."
+        ),
+        Fragment (
+            id: "theban_water",
+            type: .colour (hue: Color (red: 0.30, green: 0.38, blue: 0.45)),
+            significance: "still water — waiting, without direction",
+            dialogueOption: "Still water finds its own level. The god shows Thebes enduring — not how, not yet. But enduring."
+        ),
+    ]
+
+    // MARK: - Vision Fragments: The Aegean Island
+    //
+    // Six fragments — small, coastal, domestic.
+    // Four thousand people on an island. The vision should feel intimate
+    // and frightened rather than grand. Harbours, children, empty houses,
+    // the smell of salt. These are not the fragments of empire — they are
+    // the fragments of ordinary life that empire is about to reach.
+
+    static let aegeanFragments: [Fragment] = [
+        Fragment (
+            id: "aegean_harbour",
+            type: .image (symbolName: "ferry"),
+            significance: "a harbour — empty, or full, or waiting to be one of those things",
+            dialogueOption: "I saw your harbour empty. The god showed it to me after — when the choice had already been made, and the choice was right."
+        ),
+        Fragment (
+            id: "aegean_water",
+            type: .colour (hue: Color (red: 0.22, green: 0.42, blue: 0.58)),
+            significance: "open water — the sea as possibility or as danger, indistinguishable",
+            dialogueOption: "The sea will be safer than the shore this season. I saw open water and I saw people on it — moving away from something that was coming."
+        ),
+        Fragment (
+            id: "aegean_house",
+            type: .image (symbolName: "house"),
+            significance: "a house that stands after the people inside it have gone",
+            dialogueOption: "I saw an empty house. The god showed it standing — undamaged, waiting. The house survives if the people are not in it."
+        ),
+        Fragment (
+            id: "aegean_children",
+            type: .sensation (text: "the sound of\nchildren at work"),
+            significance: "ordinary life — the thing that is actually being decided for",
+            dialogueOption: "I saw children. Go. Before the season closes."
+        ),
+        Fragment (
+            id: "aegean_salt",
+            type: .sensation (text: "salt air\nand open wind"),
+            significance: "the sea's own language — for those who know how to read it",
+            dialogueOption: "The smell of salt and open wind. The god shows a people who moved when they needed to. That time is now."
+        ),
+        Fragment (
+            id: "aegean_go",
+            type: .word (text: "GO"),
+            significance: "one word — clear enough that no amount of Oracle tradition could soften it",
+            dialogueOption: "The word the god gave me was GO."
         ),
     ]
 }
