@@ -15,8 +15,23 @@
 //   act3_[scene]_[beat]
 //   Vision return node: leonidas_return
 //
-// Connect: act2_close_end.nextNodeID = "act3_open_01"
-// and pass ActI.nodes + ActII.nodes + ActIII.nodes to NarrativeEngine.
+// Vision → Dialogue pattern:
+//   The Leonidas vision is the most overwhelming in the game — 9 fragments,
+//   too many to hold. The player selects 3.
+//
+//   The central choice (act3_central_choice) remains a STANDARD choice —
+//   truth / Demetrios's version / riddles. This is the moral decision.
+//   It does not change based on fragments.
+//
+//   What fragments determine is the specific words Mara speaks — HOW she
+//   delivers the prophecy within whichever path she chose. Each path has
+//   its own wording node (act3_leonidas_wording_truth / _false / _riddle)
+//   where the fragment-derived choices appear.
+//
+//   This preserves the drama of the central choice while giving the vision
+//   real weight: you chose truth, but the fragments decide whether Mara
+//   speaks it as a soldier speaks, or as someone who loved him, or as
+//   someone who is afraid of what she saw.
 
 import SwiftUI
 
@@ -234,7 +249,6 @@ enum ActIII {
             teaches: .receivedLeonidasVision
         ),
 
-        // Return from vision
         DialogueNode (
             id: "leonidas_return",
             speaker: .narrator,
@@ -259,7 +273,9 @@ enum ActIII {
             teaches: nil
         ),
 
-        // THE CENTRAL CHOICE OF THE GAME
+        // THE CENTRAL CHOICE OF THE GAME — standard choices, NOT fragment-derived.
+        // This is the moral decision: truth / lie / ambiguity.
+        // Each path routes to a wording node where fragments take over.
         DialogueNode (
             id: "act3_central_choice",
             speaker: .narrator,
@@ -269,7 +285,7 @@ enum ActIII {
                     id: "leonidas_truth",
                     text: "Speak the true prophecy — tell him he will die, that he should go anyway, that his death holds the pass and saves Greece.",
                     requires: nil,
-                    leadsTo: "act3_leonidas_truth_01",
+                    leadsTo: "act3_leonidas_wording_truth",
                     teaches: .toldLeonidasTruth,
                     axisNote: "Integrity +3 — the hardest and most honest path"
                 ),
@@ -277,7 +293,7 @@ enum ActIII {
                     id: "leonidas_demetrios",
                     text: "Deliver Demetrios's version — counsel patience, tell him glory waits in a longer campaign, that the pass is not his road.",
                     requires: nil,
-                    leadsTo: "act3_leonidas_false_01",
+                    leadsTo: "act3_leonidas_wording_false",
                     teaches: .toldLeonidasDemetriosVersion,
                     axisNote: "Integrity -3 — the managed lie"
                 ),
@@ -285,7 +301,7 @@ enum ActIII {
                     id: "leonidas_riddle",
                     text: "Speak in riddles — give the authentic ambiguous Oracle response. Let him interpret it himself.",
                     requires: nil,
-                    leadsTo: "act3_leonidas_riddle_01",
+                    leadsTo: "act3_leonidas_wording_riddle",
                     teaches: .toldLeonidasInRiddles,
                     axisNote: "Integrity -1 — a partial compromise"
                 ),
@@ -295,17 +311,287 @@ enum ActIII {
             teaches: nil
         ),
 
-        // --- PATH: TRUTH ---
-
+        // --- TRUTH PATH WORDING ---
+        // The player chose to tell the truth. The fragments determine
+        // exactly how Mara speaks it — with grief, with military directness,
+        // with the weight of the aftermath, with the image of his face.
+        // All routes lead to act3_leonidas_truth_02.
         DialogueNode (
-            id: "act3_leonidas_truth_01",
-            speaker: .mara,
-            text: "\"I saw a narrow pass in the mountains. Three hundred red cloaks. Arrows so thick they darkened the sky.\"\n\nYou do not look away from him.\n\n\"I saw you fall. I saw the pass hold. I saw Greece hold after it.\"",
-            choices: nil,
-            nextNodeID: "act3_leonidas_truth_02",
+            id: "act3_leonidas_wording_truth",
+            speaker: .narrator,
+            text: "The truth is there. The fragments shape how you speak it.",
+            choices: [
+                DialogueChoice (
+                    id: "truth_via_pass",
+                    text: "\"I saw a narrow pass in the mountains. Three hundred red cloaks. Arrows so thick they darkened the sky.\"\n\n\"I saw you fall. I saw the pass hold. I saw Greece hold after it.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — pass fragment, military specificity",
+                    sourceFragmentID: "leo_pass"
+                ),
+                DialogueChoice (
+                    id: "truth_via_cloaks",
+                    text: "\"I saw three hundred red cloaks spread across a narrow place.\"\n\nYou do not look away from him.\n\n\"I saw what they cost. I saw what they bought.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — cloaks fragment, human cost",
+                    sourceFragmentID: "leo_cloaks"
+                ),
+                DialogueChoice (
+                    id: "truth_via_arrows",
+                    text: "\"The sky darkened. I understood what that meant before I understood the rest.\"\n\n\"You will not come back from the north. But what comes after you — does.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — arrows fragment, ominous opening",
+                    sourceFragmentID: "leo_arrows"
+                ),
+                DialogueChoice (
+                    id: "truth_via_face",
+                    text: "\"I saw your face.\"\n\nA long pause.\n\n\"It had already decided. Before the march. Before this room. The pass holds — because of what that face decided.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — face fragment, most personal",
+                    sourceFragmentID: "leo_face"
+                ),
+                DialogueChoice (
+                    id: "truth_via_after",
+                    text: "\"I did not see the battle. I saw what comes after it.\"\n\n\"Greece holds. But you do not see it hold. You are already gone when it does.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — AFTER fragment, the most direct about death",
+                    sourceFragmentID: "leo_after"
+                ),
+                DialogueChoice (
+                    id: "truth_via_ships",
+                    text: "\"I saw the fleet rallying. Ships that would have scattered — holding course.\"\n\n\"They held because the pass held first. Because you held it.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — ships fragment, consequence chain",
+                    sourceFragmentID: "leo_ships"
+                ),
+                DialogueChoice (
+                    id: "truth_via_silence",
+                    text: "\"Three hundred voices, stopping at once.\"\n\nYou let that sit.\n\n\"And then — the sound of a war that continues. Because they stopped.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — silence fragment, most poetic",
+                    sourceFragmentID: "leo_silence"
+                ),
+                DialogueChoice (
+                    id: "truth_via_fire",
+                    text: "\"The signal fire carried the news ahead of the army. What the fire said was: it held.\"\n\n\"You will not see that fire. But it will carry your name.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — fire fragment, legacy",
+                    sourceFragmentID: "leo_fire"
+                ),
+                DialogueChoice (
+                    id: "truth_via_holds",
+                    text: "\"The word I kept hearing was holds.\"\n\n\"The pass holds. The line holds. Greece holds.\"\n\nYou look at him directly.\n\n\"You do not.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_truth_02",
+                    teaches: .spokeAgainstDemetriosWishes,
+                    axisNote: "Truth — HOLDS fragment, most stark",
+                    sourceFragmentID: "leo_word"
+                ),
+            ],
+            nextNodeID: nil,
             trigger: nil,
-            teaches: .spokeAgainstDemetriosWishes
+            teaches: nil
         ),
+
+        // --- FALSE PATH WORDING ---
+        // The player chose Demetrios's version. The fragments shape
+        // how Mara wraps the lie in oracle language — each fragment
+        // offers a different way to dress patience as destiny.
+        DialogueNode (
+            id: "act3_leonidas_wording_false",
+            speaker: .narrator,
+            text: "Demetrios's words are in your mouth. The fragments give them a shape.",
+            choices: [
+                DialogueChoice (
+                    id: "false_via_pass",
+                    text: "\"The god shows narrow roads that close before the season — and wider roads that open after.\"\n\n\"The pass is not your road. Not yet. Patient men find the roads that last.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — pass fragment, geography as metaphor",
+                    sourceFragmentID: "leo_pass"
+                ),
+                DialogueChoice (
+                    id: "false_via_cloaks",
+                    text: "\"I saw Spartan red — many times over, across many years of service.\"\n\n\"The god counsels patience. Glory awaits in the longer campaign. Your colour is not spent here.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — cloaks fragment, false promise of future",
+                    sourceFragmentID: "leo_cloaks"
+                ),
+                DialogueChoice (
+                    id: "false_via_arrows",
+                    text: "\"The god shows arrows — and men who survive them by holding their ground at the right moment.\"\n\n\"This is not that moment. The right moment comes later. When it does, you will know it.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — arrows fragment, redirection",
+                    sourceFragmentID: "leo_arrows"
+                ),
+                DialogueChoice (
+                    id: "false_via_after",
+                    text: "\"The god shows what comes after — and what comes after requires Sparta's strength intact.\"\n\n\"Glory awaits in the longer campaign. The pass is not your road.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — AFTER fragment, Demetrios's exact framing",
+                    sourceFragmentID: "leo_after"
+                ),
+                DialogueChoice (
+                    id: "false_via_ships",
+                    text: "\"The fleet needs Sparta's land forces. The god shows a victory at sea — one that requires your strength preserved, not spent at a pass.\"\n\n\"That is your road. Not the north.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — ships fragment, most politically coherent",
+                    sourceFragmentID: "leo_ships"
+                ),
+                DialogueChoice (
+                    id: "false_via_fire",
+                    text: "\"The signal fires will carry news of Spartan victory — in the season after this one.\"\n\n\"The god counsels patience. Your time will come. This is not it.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — fire fragment, deferred promise",
+                    sourceFragmentID: "leo_fire"
+                ),
+                DialogueChoice (
+                    id: "false_via_holds",
+                    text: "\"The word I heard was holds — a Greece that holds, a Sparta that holds its strength for the moment when it matters.\"\n\n\"The pass is not that moment. The longer campaign awaits.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — HOLDS fragment, lie built on a truth",
+                    sourceFragmentID: "leo_word"
+                ),
+                DialogueChoice (
+                    id: "false_via_silence",
+                    text: "\"The god showed silence — the silence that precedes a long and patient victory.\"\n\n\"Rush toward noise and you meet only chaos. The god counsels stillness.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_false_01",
+                    teaches: nil,
+                    axisNote: "False — silence fragment, most evasive",
+                    sourceFragmentID: "leo_silence"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- RIDDLE PATH WORDING ---
+        // The player chose traditional Oracle ambiguity. The fragments
+        // shape which kind of riddle Mara offers — stone, fire, wall,
+        // gate, threshold. All routes lead to Leonidas interpreting.
+        DialogueNode (
+            id: "act3_leonidas_wording_riddle",
+            speaker: .narrator,
+            text: "The Oracle's voice is there. The fragments give it a form.",
+            choices: [
+                DialogueChoice (
+                    id: "riddle_via_pass",
+                    text: "\"The god shows a road that narrows until it is not a road — and then becomes one again.\"\n\n\"What passes through the narrowing passes into memory. What turns from it passes into nothing.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — pass fragment, road metaphor",
+                    sourceFragmentID: "leo_pass"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_cloaks",
+                    text: "\"A colour that does not fade — even after the men who wore it are gone.\"\n\nYou meet his eyes.\n\n\"The god asks: what is the cost of a colour, and what does it purchase?\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — cloaks fragment, legacy-as-question",
+                    sourceFragmentID: "leo_cloaks"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_arrows",
+                    text: "\"When the sky becomes solid, a man discovers what he is made of.\"\n\n\"The god does not tell me whether that discovery is pleasant. Only that it is true.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — arrows fragment, character-test framing",
+                    sourceFragmentID: "leo_arrows"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_after",
+                    text: "\"The god shows me what comes after — and what comes after is larger than what precedes it.\"\n\n\"Whether that is comfort or warning, I cannot say. It depends on what you choose to precede it.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — AFTER fragment, open-ended",
+                    sourceFragmentID: "leo_after"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_wall",
+                    text: "\"The god shows a wall that is not stone, and a gate that opens only once.\"\n\n\"What passes through it passes into memory. What turns from it passes into nothing.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — silence fragment used as wall/gate, the original riddle wording",
+                    sourceFragmentID: "leo_silence"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_ships",
+                    text: "\"The god shows water that decides — and land that makes it possible for water to decide.\"\n\n\"Which element you are in this vision, I leave to you.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — ships fragment, land/sea ambiguity",
+                    sourceFragmentID: "leo_ships"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_fire",
+                    text: "\"Signal fire travels ahead of the news it carries.\"\n\n\"The god asks: what news do you wish to send, and are you willing to be the fire that sends it?\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — fire fragment, agency-as-question",
+                    sourceFragmentID: "leo_fire"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_holds",
+                    text: "\"The word the god gave me was holds.\"\n\n\"I cannot tell you what holds, or whether you are the thing that holds it, or the thing held.\"\n\n\"But something holds.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — HOLDS fragment, most openly ambiguous",
+                    sourceFragmentID: "leo_word"
+                ),
+                DialogueChoice (
+                    id: "riddle_via_face",
+                    text: "\"I saw a face that had already decided.\"\n\nA long silence.\n\n\"I do not know if that is prophecy, or simply observation.\"",
+                    requires: nil,
+                    leadsTo: "act3_leonidas_riddle_01",
+                    teaches: nil,
+                    axisNote: "Riddle — face fragment, most personal and least evasive",
+                    sourceFragmentID: "leo_face"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- TRUTH PATH continuation — from wording node ---
 
         DialogueNode (
             id: "act3_leonidas_truth_02",
@@ -392,12 +678,12 @@ enum ActIII {
             teaches: nil
         ),
 
-        // --- PATH: DEMETRIOS'S VERSION ---
+        // --- FALSE PATH continuation — from wording node ---
 
         DialogueNode (
             id: "act3_leonidas_false_01",
-            speaker: .mara,
-            text: "\"The god counsels patience, King of Sparta. Glory awaits in the longer campaign. The pass —\"\n\nYou hear yourself speaking Demetrios's words in your voice.\n\n\"— is not your road. Not yet.\"",
+            speaker: .narrator,
+            text: "You hear yourself speaking Demetrios's words in your voice.\n\nLeonidas listens. His expression does not change during the prophecy.\n\nWhen you finish, he is quiet for a moment that stretches long enough to make you uncertain.",
             choices: nil,
             nextNodeID: "act3_leonidas_false_02",
             trigger: nil,
@@ -406,8 +692,8 @@ enum ActIII {
 
         DialogueNode (
             id: "act3_leonidas_false_02",
-            speaker: .narrator,
-            text: "Leonidas listens. His expression does not change during the prophecy.\n\nWhen you finish, he is quiet for a moment that stretches long enough to make you uncertain.",
+            speaker: .leonidas,
+            text: "\"Patience,\" he says.\n\nJust that. As though tasting the word.\n\n\"The longer campaign.\"\n\nHe looks at you — and for a moment you think he sees through it entirely, through you, through the room — and then the moment passes.",
             choices: nil,
             nextNodeID: "act3_leonidas_false_03",
             trigger: nil,
@@ -417,16 +703,6 @@ enum ActIII {
         DialogueNode (
             id: "act3_leonidas_false_03",
             speaker: .leonidas,
-            text: "\"Patience,\" he says.\n\nJust that. As though tasting the word.\n\n\"The longer campaign.\"\n\nHe looks at you — and for a moment you think he sees through it entirely, through you, through the room — and then the moment passes.",
-            choices: nil,
-            nextNodeID: "act3_leonidas_false_04",
-            trigger: nil,
-            teaches: nil
-        ),
-
-        DialogueNode (
-            id: "act3_leonidas_false_04",
-            speaker: .leonidas,
             text: "\"I thank the Oracle for her counsel.\"\n\nHe bows, correctly and precisely, and goes.\n\nHe does not look back. You cannot tell, from his back, what he will do.",
             choices: nil,
             nextNodeID: "act3_aftermath_false",
@@ -434,12 +710,12 @@ enum ActIII {
             teaches: nil
         ),
 
-        // --- PATH: RIDDLES ---
+        // --- RIDDLE PATH continuation — from wording node ---
 
         DialogueNode (
             id: "act3_leonidas_riddle_01",
-            speaker: .mara,
-            text: "\"The god shows a wall that is not stone, and a gate that opens only once.\"\n\nYou find the old Oracle voice — the one Demetrios trained in you, layered and oblique.\n\n\"What passes through it passes into memory. What turns from it passes into nothing.\"",
+            speaker: .narrator,
+            text: "Leonidas does not react immediately. He sits with the words the way you might sit with a stone in your hand — feeling its weight, its edges.",
             choices: nil,
             nextNodeID: "act3_leonidas_riddle_02",
             trigger: nil,
@@ -448,16 +724,6 @@ enum ActIII {
 
         DialogueNode (
             id: "act3_leonidas_riddle_02",
-            speaker: .narrator,
-            text: "Leonidas does not react immediately. He sits with the words the way you might sit with a stone in your hand — feeling its weight, its edges.",
-            choices: nil,
-            nextNodeID: "act3_leonidas_riddle_03",
-            trigger: nil,
-            teaches: nil
-        ),
-
-        DialogueNode (
-            id: "act3_leonidas_riddle_03",
             speaker: .leonidas,
             text: "\"A wall that is not stone.\"\n\nA long pause.\n\n\"Men,\" he says finally. \"Men who do not move.\"\n\nHe looks up at you.",
             choices: nil,
@@ -739,7 +1005,7 @@ enum ActIII {
             speaker: .narrator,
             text: "— ACT IV —\n\nTHE SILENCE",
             choices: nil,
-            nextNodeID: "act4_open_01",    
+            nextNodeID: "act4_open_01",
             trigger: .actTransition (toAct: 4),
             teaches: nil
         ),
@@ -747,58 +1013,74 @@ enum ActIII {
 
     // MARK: - Vision Fragments: Leonidas
     //
-    // The most overwhelming vision in the game.
-    // More fragments than any previous session — 9, too many to hold.
-    // The player must choose what feels most significant.
-    // Their selection seeds the prophecy choices that follow.
-    // All three prophecy paths are available regardless of selection —
-    // the fragments colour the experience, not the availability.
+    // Nine fragments — the most in the game, too many to hold comfortably.
+    // The player must choose 3. The pressure of having to discard six of
+    // nine fragments IS the design: this vision is overwhelming.
+    //
+    // Authoring note: dialogueOption is the oracle-voiced line that becomes
+    // a dialogue choice in the three wording nodes:
+    //   act3_leonidas_wording_truth   — how Mara speaks the truth
+    //   act3_leonidas_wording_false   — how Mara speaks the lie
+    //   act3_leonidas_wording_riddle  — which riddle Mara offers
+    //
+    // Each fragment maps to one choice in each of those three nodes.
+    // The dialogueOption property stores the honest/direct reading.
+    // The false and riddle variants are authored inline in the nodes above.
 
     static let leonidasFragments: [Fragment] = [
         Fragment (
             id: "leo_pass",
             type: .image (symbolName: "mountain.2.fill"),
-            significance: "stone walls on either side — the world narrowed to one road"
+            significance: "stone walls on either side — the world narrowed to one road",
+            dialogueOption: "I saw a narrow pass in the mountains. Three hundred red cloaks. Arrows so thick they darkened the sky. I saw you fall. I saw the pass hold."
         ),
         Fragment (
             id: "leo_cloaks",
             type: .colour (hue: Color (red: 0.65, green: 0.12, blue: 0.12)),
-            significance: "the colour of Sparta — three hundred times over"
+            significance: "the colour of Sparta — three hundred times over",
+            dialogueOption: "I saw three hundred red cloaks spread across a narrow place. I saw what they cost. I saw what they bought."
         ),
         Fragment (
             id: "leo_arrows",
             type: .sensation (text: "the sky\nbecoming solid"),
-            significance: "so many they blocked the sun — someone said this was a mercy"
+            significance: "so many they blocked the sun — someone said this was a mercy",
+            dialogueOption: "The sky darkened. I understood what that meant before I understood the rest. You will not come back from the north. But what comes after you — does."
         ),
         Fragment (
             id: "leo_face",
             type: .image (symbolName: "person.fill"),
-            significance: "a face that has already decided — before the march, before the question"
+            significance: "a face that has already decided — before the march, before the question",
+            dialogueOption: "I saw your face. It had already decided. Before the march. Before this room. The pass holds — because of what that face decided."
         ),
         Fragment (
             id: "leo_after",
             type: .word (text: "AFTER"),
-            significance: "not the battle — what the battle made possible"
+            significance: "not the battle — what the battle made possible",
+            dialogueOption: "I did not see the battle. I saw what comes after it. Greece holds. But you do not see it hold. You are already gone when it does."
         ),
         Fragment (
             id: "leo_ships",
             type: .image (symbolName: "water.waves"),
-            significance: "the fleet, rallying — the pass had already done its work"
+            significance: "the fleet, rallying — the pass had already done its work",
+            dialogueOption: "I saw the fleet rallying. Ships that would have scattered — holding course. They held because the pass held first. Because you held it."
         ),
         Fragment (
             id: "leo_silence",
             type: .sensation (text: "three hundred\nvoices stopping\nat once"),
-            significance: "the sound of a wall becoming a door"
+            significance: "the sound of a wall becoming a door",
+            dialogueOption: "Three hundred voices, stopping at once. And then — the sound of a war that continues. Because they stopped."
         ),
         Fragment (
             id: "leo_fire",
             type: .colour (hue: Color (red: 0.90, green: 0.60, blue: 0.15)),
-            significance: "not destruction — signal fire, carried ahead of the news"
+            significance: "not destruction — signal fire, carried ahead of the news",
+            dialogueOption: "The signal fire carried the news ahead of the army. What the fire said was: it held. You will not see that fire. But it will carry your name."
         ),
         Fragment (
             id: "leo_word",
             type: .word (text: "HOLDS"),
-            significance: "the pass. the line. the meaning of the sacrifice."
+            significance: "the pass. the line. the meaning of the sacrifice.",
+            dialogueOption: "The word I kept hearing was holds. The pass holds. The line holds. Greece holds. You do not."
         ),
     ]
 }

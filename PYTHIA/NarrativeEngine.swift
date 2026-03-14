@@ -8,6 +8,17 @@
 // All story content lives in data (ActI.swift, ActII.swift, etc.)
 // not here. The engine is content-agnostic — it just runs the graph.
 //
+// Vision → Dialogue pipeline:
+//   1. A node fires .beginVisionSession — VisionView is presented.
+//   2. Player selects exactly 3 fragments and confirms.
+//   3. visionSessionCompleted() stores those 3 IDs in activeVisionSelections.
+//   4. The engine advances to the [sessionID]_return node.
+//   5. The next node with choices uses DialogueChoice.sourceFragmentID.
+//      availableChoices() filters to only the 3 choices whose fragment IDs
+//      the player selected — those become the only available options.
+//   6. After that choice node is resolved, clearVisionSelections() is called
+//      automatically, resetting for the next session.
+//
 // Usage (from a parent view):
 //   @StateObject var engine = NarrativeEngine (
 //       nodes: ActI.nodes,
@@ -71,22 +82,53 @@ enum Speaker {
         switch self {
         case .demetrios:  return "portrait_demetrios"
         case .lyra:       return "portrait_lyra"
-        case .nikomedes: return "portrait_nikomedes"
-        case .leonidas: return "portrait_leonidas"
-        case .pausanias: return "portrait_pausanias"
+        case .nikomedes:  return "portrait_nikomedes"
+        case .leonidas:   return "portrait_leonidas"
+        case .pausanias:  return "portrait_pausanias"
         default:          return nil
         }
     }
 }
 
-/// A player choice within a dialogue node
+/// A player choice within a dialogue node.
+///
+/// Vision-derived choices: set sourceFragmentID to the Fragment.id whose
+/// dialogueOption this choice represents. availableChoices() will only
+/// surface this choice if that fragment is in activeVisionSelections.
+///
+/// Non-vision choices: leave sourceFragmentID nil. They behave exactly
+/// as before — gated only by `requires` knowledge flag, if set.
 struct DialogueChoice: Identifiable {
     let id: String
     let text: String
-    let requires: KnowledgeFlag?        // nil = always visible
+    let requires: KnowledgeFlag?        // nil = always visible (subject to fragment gate below)
     let leadsTo: String                 // next node ID
     let teaches: KnowledgeFlag?         // flag learned on selection
     let axisNote: String?               // debug only — describes axis impact
+
+    /// The Fragment.id this choice is derived from.
+    /// When set, this choice is only available if that fragment was selected
+    /// in the most recent vision session. nil = standard dialogue choice.
+    let sourceFragmentID: String?
+
+    // Convenience init that keeps sourceFragmentID optional at the call site
+    init (
+        id: String,
+        text: String,
+        requires: KnowledgeFlag? = nil,
+        leadsTo: String,
+        teaches: KnowledgeFlag? = nil,
+        axisNote: String? = nil,
+        sourceFragmentID: String? = nil
+    ) {
+        self.id = id
+        self.text = text
+        self.requires = requires
+        self.leadsTo = leadsTo
+        self.teaches = teaches
+        self.axisNote = axisNote
+        self.sourceFragmentID = sourceFragmentID
+    }
 }
 
 /// Special triggers a node can fire — handed back to the parent view
@@ -132,7 +174,6 @@ class NarrativeEngine: ObservableObject {
     @Published private(set) var isLoadingGame: Bool = false
 
     /// The journal — passthrough to KnowledgeState so entries persist with saves.
-    /// @Published so SceneView re-renders when entries are added.
     @Published private(set) var journalEntries: [JournalEntry] = []
 
     // MARK: Private
@@ -140,20 +181,21 @@ class NarrativeEngine: ObservableObject {
     private let knowledge: KnowledgeState
     private var nodeGraph: [String: DialogueNode] = [:]
 
+    /// The fragment IDs the player selected in the most recent vision session.
+    /// These gate which DialogueChoices are available in the prophecy node that follows.
+    /// Cleared automatically after the first vision-derived choice is made.
+    private var activeVisionSelections: Set<String> = []
+
     // MARK: Init
 
     init (nodes: [DialogueNode], knowledge: KnowledgeState, startNodeID: String? = nil) {
         self.knowledge = knowledge
 
-        // Build lookup graph from array
         for node in nodes {
             nodeGraph[node.id] = node
         }
 
-        // Do NOT advance here. ContentView controls when the game starts
-        // via resetToStart() or loadSave(), so the engine waits idle until
-        // one of those is called. This prevents the engine advancing past
-        // the first node before the player has tapped Begin / Continue.
+        // ContentView controls start via resetToStart() or loadSave()
     }
 
     // MARK: - Advancing
@@ -164,12 +206,10 @@ class NarrativeEngine: ObservableObject {
             return
         }
 
-        // Learn the flag this node teaches, if any
         if let flag = node.teaches {
             knowledge.learn (flag)
         }
 
-        // Fire any trigger
         if let trigger = node.trigger {
             handleTrigger (trigger)
         }
@@ -178,7 +218,6 @@ class NarrativeEngine: ObservableObject {
             currentNode = node
         }
 
-        // Auto-save after every node advance
         knowledge.lastNodeID = node.id
         knowledge.save ()
     }
@@ -191,34 +230,58 @@ class NarrativeEngine: ObservableObject {
         advance (to: nextID)
     }
 
-    /// Called when the player selects a dialogue choice
+    /// Called when the player selects a dialogue choice.
+    /// Clears activeVisionSelections after a vision-derived choice is made —
+    /// the vision vocabulary is consumed once the prophecy is spoken.
     func selectChoice (_ choice: DialogueChoice) {
-        // Learn the flag this choice teaches
         if let flag = choice.teaches {
             knowledge.learn (flag)
         }
-        // Record in dialogue history
         knowledge.recordDialogueChoice (
             sceneID: currentNode?.id ?? "unknown",
             chosenOptionID: choice.id
         )
+
+        // If this was a vision-derived choice, the selection set has done its job
+        if choice.sourceFragmentID != nil {
+            clearVisionSelections ()
+        }
+
         advance (to: choice.leadsTo)
     }
 
     /// Returns only the choices available given current knowledge state
+    /// AND (for vision-derived choices) the active fragment selection.
+    ///
+    /// Filter logic:
+    ///   1. If choice.requires is set, Mara must know that flag.
+    ///   2. If choice.sourceFragmentID is set, that ID must be in activeVisionSelections.
+    ///      This means only the 3 chosen fragments produce available choices.
+    ///   3. If sourceFragmentID is nil, the choice is a standard dialogue option
+    ///      and passes through unaffected by the vision gate.
     func availableChoices (for node: DialogueNode) -> [DialogueChoice] {
         guard let choices = node.choices else { return [] }
         return choices.filter { choice in
-            guard let required = choice.requires else { return true }
-            return knowledge.knows (required)
+            // Knowledge gate
+            if let required = choice.requires, !knowledge.knows (required) {
+                return false
+            }
+            // Vision fragment gate
+            if let fragmentID = choice.sourceFragmentID {
+                return activeVisionSelections.contains (fragmentID)
+            }
+            return true
         }
     }
 
     // MARK: - Vision Session Handling
 
-    /// Called by SceneView when the vision session completes
+    /// Called by SceneView when the vision session completes.
+    /// Stores the selected fragment IDs so the dialogue phase can filter choices.
     func visionSessionCompleted (sessionID: String, selectedFragmentIDs: [String]) {
-        // Record in knowledge
+        // Store selections — these gate the prophecy choices
+        activeVisionSelections = Set (selectedFragmentIDs)
+
         knowledge.recordVisionInterpretation (
             sessionID: sessionID,
             offeredFragmentIDs: pendingVisionSession?.fragments.map { $0.id } ?? [],
@@ -226,18 +289,23 @@ class NarrativeEngine: ObservableObject {
         )
         pendingVisionSession = nil
 
-        // Resume from the post-vision node (convention: sessionID + "_return")
         let returnNodeID = sessionID + "_return"
         if nodeGraph[returnNodeID] != nil {
             advance (to: returnNodeID)
         }
     }
 
+    /// Clear the active vision selections.
+    /// Called automatically after a vision-derived choice is made.
+    private func clearVisionSelections () {
+        activeVisionSelections = []
+    }
+
     // MARK: - Journal
 
     func addJournalEntry (_ entry: JournalEntry) {
         knowledge.addJournalEntry (entry)
-        journalEntries = knowledge.journalEntries  // keep published mirror in sync
+        journalEntries = knowledge.journalEntries
     }
 
     // MARK: - Trigger Handling
@@ -262,14 +330,12 @@ class NarrativeEngine: ObservableObject {
             currentActNumber = act
 
         case .endGame:
-            break   // Parent view handles this
+            break
         }
     }
-    
+
     // MARK: - Save / Load / Reset
 
-    /// Restore engine state from a saved game.
-    /// Loads knowledge from disk and resumes from lastNodeID.
     func loadSave () {
         knowledge.load ()
         currentActNumber = knowledge.currentAct
@@ -281,16 +347,14 @@ class NarrativeEngine: ObservableObject {
         isLoadingGame = false
     }
 
-    /// Reset to the very first node — used for New Game.
-    /// KnowledgeState.deleteSave() has already wiped the save file before this is called.
     func resetToStart () {
         currentActNumber = 1
+        activeVisionSelections = []
         advance (to: "act1_prologue_01")
     }
 
     // MARK: - Ending Handling
 
-    /// The resolved ending — computed from knowledge axes.
     var resolvedEnding: Ending {
         knowledge.resolveEnding ()
     }

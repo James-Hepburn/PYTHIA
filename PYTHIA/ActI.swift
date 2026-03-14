@@ -15,6 +15,14 @@
 //   act1_[scene]_[beat]
 //   Vision return nodes: [sessionID]_return
 //
+// Vision → Dialogue authoring pattern (established here, followed in Acts II–IV):
+//   1. Each Fragment in a vision session has a dialogueOption — the oracle-voiced
+//      line that becomes a dialogue choice in the prophecy scene.
+//   2. The prophecy DialogueNode lists ALL possible choices (one per fragment).
+//   3. Each choice sets sourceFragmentID = the corresponding Fragment.id.
+//   4. NarrativeEngine.availableChoices() surfaces only the 3 the player selected.
+//   5. The player sees exactly 3 choices — their vocabulary, nothing more.
+//
 // To add content: add cases to the nodes array.
 // The engine will find them automatically by ID.
 
@@ -127,35 +135,73 @@ enum ActI {
             teaches: .deliveredHarvestProphecy
         ),
 
-        // First real player choice — how to frame the prophecy
+        // The prophecy choice — one option per fragment, filtered to the 3 the player chose.
+        // Each choice.text is the Fragment's dialogueOption — oracle-voiced, poetic, ambiguous.
+        // The player faces exactly what they saw, translated into words.
         DialogueNode (
             id: "act1_harvest_prophecy_choice",
             speaker: .mara,
-            text: "The vision was gentle but not simple. How do you speak it?",
+            text: "The farmer kneels before you. He is waiting.\n\nYou have what you saw. Speak from it.",
             choices: [
+                // harvest_grain → abundance, the earth remembers
                 DialogueChoice (
-                    id: "harvest_direct",
+                    id: "harvest_speak_grain",
+                    text: "\"I saw grain, full and heavy. The earth does not forget a patient hand.\"",
+                    requires: nil,
+                    leadsTo: "act1_harvest_response_grain",
+                    teaches: nil,
+                    axisNote: "Hopeful, grounded — no axis impact",
+                    sourceFragmentID: "harvest_grain"
+                ),
+                // harvest_rain → wait for the third rain
+                DialogueChoice (
+                    id: "harvest_speak_rain",
                     text: "\"Wait for the third rain before you sow. The earth is not yet ready.\"",
                     requires: nil,
-                    leadsTo: "act1_harvest_response_direct",
+                    leadsTo: "act1_harvest_response_rain",
                     teaches: nil,
-                    axisNote: "Direct, practical — no axis impact"
+                    axisNote: "Practical, direct — no axis impact",
+                    sourceFragmentID: "harvest_rain"
                 ),
+                // harvest_wait → the word alone, turned into counsel
                 DialogueChoice (
-                    id: "harvest_oblique",
-                    text: "\"Apollo sees your fields. What the water withholds, patience returns.\"",
+                    id: "harvest_speak_wait",
+                    text: "\"Apollo says: wait. I cannot tell you more than that. But wait.\"",
                     requires: nil,
-                    leadsTo: "act1_harvest_response_oblique",
+                    leadsTo: "act1_harvest_response_wait",
                     teaches: .usedOracularAmbiguityAsShield,
-                    axisNote: "Oracular tradition — mild integrity cost"
+                    axisNote: "Oracular tradition — mild integrity cost",
+                    sourceFragmentID: "harvest_wait"
                 ),
+                // harvest_sun → the season turns in your favour
                 DialogueChoice (
-                    id: "harvest_honest",
-                    text: "\"I saw grain and I saw waiting. I believe it will hold — but not without care.\"",
+                    id: "harvest_speak_sun",
+                    text: "\"The season turns in your favour. What the water withholds, patience returns.\"",
                     requires: nil,
-                    leadsTo: "act1_harvest_response_honest",
+                    leadsTo: "act1_harvest_response_sun",
+                    teaches: .usedOracularAmbiguityAsShield,
+                    axisNote: "Traditional Oracle voice — mild integrity cost",
+                    sourceFragmentID: "harvest_sun"
+                ),
+                // harvest_children → honest about what the vision was really about
+                DialogueChoice (
+                    id: "harvest_speak_children",
+                    text: "\"I saw your children. I believe it will hold — but not without care.\"",
+                    requires: nil,
+                    leadsTo: "act1_harvest_response_children",
                     teaches: nil,
-                    axisNote: "Honest about uncertainty — no axis impact, establishes Mara's voice"
+                    axisNote: "Honest about uncertainty — establishes Mara's voice",
+                    sourceFragmentID: "harvest_children"
+                ),
+                // harvest_silence → the threshold, barely spoken
+                DialogueChoice (
+                    id: "harvest_speak_silence",
+                    text: "\"Something is about to change. I do not know whether it has already been decided, or whether it depends on you.\"",
+                    requires: nil,
+                    leadsTo: "act1_harvest_response_silence",
+                    teaches: nil,
+                    axisNote: "Uncertain but honest — no axis impact",
+                    sourceFragmentID: "harvest_silence"
                 ),
             ],
             nextNodeID: nil,
@@ -163,10 +209,12 @@ enum ActI {
             teaches: nil
         ),
 
+        // --- Response nodes: each leads to Demetrios ---
+
         DialogueNode (
-            id: "act1_harvest_response_direct",
+            id: "act1_harvest_response_grain",
             speaker: .narrator,
-            text: "The farmer nods slowly, committing your words to memory. He leaves a small clay offering — a grain stalk pressed into terracotta.\n\nFrom the doorway, Demetrios watches.",
+            text: "The farmer presses his hands to his knees. Relief moves across his face slowly, like a tide.\n\n\"The earth does not forget,\" he repeats quietly. \"No. It does not.\"\n\nHe leaves a small clay offering — a grain stalk pressed into terracotta.\n\nFrom the doorway, Demetrios watches.",
             choices: nil,
             nextNodeID: "act1_meet_demetrios_01",
             trigger: nil,
@@ -174,7 +222,17 @@ enum ActI {
         ),
 
         DialogueNode (
-            id: "act1_harvest_response_oblique",
+            id: "act1_harvest_response_rain",
+            speaker: .narrator,
+            text: "The farmer nods slowly, committing your words to memory. Third rain. He will count.\n\nHe leaves a small clay offering.\n\nFrom the doorway, Demetrios watches.",
+            choices: nil,
+            nextNodeID: "act1_meet_demetrios_01",
+            trigger: nil,
+            teaches: nil
+        ),
+
+        DialogueNode (
+            id: "act1_harvest_response_wait",
             speaker: .narrator,
             text: "The farmer bows his head. He seems comforted, though you are not certain he understood. He leaves a small clay offering.\n\nFrom the doorway, Demetrios watches with something like approval.",
             choices: nil,
@@ -184,9 +242,29 @@ enum ActI {
         ),
 
         DialogueNode (
-            id: "act1_harvest_response_honest",
+            id: "act1_harvest_response_sun",
+            speaker: .narrator,
+            text: "The farmer bows his head. He seems comforted. He leaves a small clay offering.\n\nFrom the doorway, Demetrios watches with something like approval.",
+            choices: nil,
+            nextNodeID: "act1_meet_demetrios_01",
+            trigger: nil,
+            teaches: nil
+        ),
+
+        DialogueNode (
+            id: "act1_harvest_response_children",
             speaker: .narrator,
             text: "The farmer looks up. This is not the Oracle's voice — it sounds like a person. His eyes are wet.\n\n\"Thank you,\" he says quietly.\n\nFrom the doorway, Demetrios watches. His expression is unreadable.",
+            choices: nil,
+            nextNodeID: "act1_meet_demetrios_01",
+            trigger: nil,
+            teaches: nil
+        ),
+
+        DialogueNode (
+            id: "act1_harvest_response_silence",
+            speaker: .narrator,
+            text: "The farmer is still for a long moment.\n\n\"I think I understand,\" he says. You are not sure he does. You are not sure you do either.\n\nHe leaves a small clay offering and goes.\n\nFrom the doorway, Demetrios watches.",
             choices: nil,
             nextNodeID: "act1_meet_demetrios_01",
             trigger: nil,
@@ -237,6 +315,7 @@ enum ActI {
             teaches: nil
         ),
 
+        // Standard dialogue choice — no sourceFragmentID, works as before
         DialogueNode (
             id: "act1_demetrios_response",
             speaker: .mara,
@@ -509,7 +588,7 @@ enum ActI {
             teaches: nil
         ),
 
-        // Act I end — this is where Act II nodes will pick up
+        // Act I end — Act II nodes pick up here
         DialogueNode (
             id: "act1_close_end",
             speaker: .narrator,
@@ -522,39 +601,51 @@ enum ActI {
     ]
 
     // MARK: - Vision Fragments: The Harvest
+    //
+    // Six fragments for the first vision session.
+    // Low stakes, easy to read — this is the tutorial vision.
+    //
+    // Authoring note: dialogueOption is the oracle-voiced line that
+    // becomes a dialogue choice in act1_harvest_prophecy_choice.
+    // Each fragment maps to exactly one choice via sourceFragmentID.
+    // The player selects 3 fragments → sees 3 dialogue options.
 
-    /// The six fragments shown during the first vision session.
-    /// Low stakes, easy to interpret — this is the tutorial vision.
     static let harvestFragments: [Fragment] = [
         Fragment (
             id: "harvest_grain",
             type: .image (symbolName: "leaf.fill"),
-            significance: "abundance — or the memory of it"
+            significance: "abundance — or the memory of it",
+            dialogueOption: "I saw grain, full and heavy. The earth does not forget a patient hand."
         ),
         Fragment (
             id: "harvest_rain",
             type: .sensation (text: "cold water\non warm stone"),
-            significance: "something arriving from outside — beyond control"
+            significance: "something arriving from outside — beyond control",
+            dialogueOption: "Wait for the third rain before you sow. The earth is not yet ready."
         ),
         Fragment (
             id: "harvest_wait",
             type: .word (text: "WAIT"),
-            significance: "patience, or warning — the same gesture, different hands"
+            significance: "patience, or warning — the same gesture, different hands",
+            dialogueOption: "Apollo says: wait. I cannot tell you more than that. But wait."
         ),
         Fragment (
             id: "harvest_sun",
             type: .colour (hue: Color (red: 0.85, green: 0.65, blue: 0.20)),
-            significance: "the colour of a season that has not yet turned"
+            significance: "the colour of a season that has not yet turned",
+            dialogueOption: "The season turns in your favour. What the water withholds, patience returns."
         ),
         Fragment (
             id: "harvest_children",
             type: .image (symbolName: "figure.2.and.child.holdinghands"),
-            significance: "what the question is really about"
+            significance: "what the question is really about",
+            dialogueOption: "I saw your children. I believe it will hold — but not without care."
         ),
         Fragment (
             id: "harvest_silence",
             type: .sensation (text: "the stillness\nbefore a door opens"),
-            significance: "threshold — not yet, but soon"
+            significance: "threshold — not yet, but soon",
+            dialogueOption: "Something is about to change. I do not know whether it has already been decided, or whether it depends on you."
         ),
     ]
 }

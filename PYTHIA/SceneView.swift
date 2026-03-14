@@ -28,6 +28,7 @@ struct SceneView: View {
     @State private var showingActTitle: Bool = false    // Act transition title card
     @State private var showingEndGame: Bool = false     // End game / credits screen
     @State private var isActTransitionPending: Bool = false  // Blocks tap while title card is queued/shown
+    @State private var isDesaturated: Bool = false      // Drives saturation for vision in AND out
 
     var onNewGame: (() -> Void)? = nil                  // Called when player restarts
 
@@ -69,9 +70,19 @@ struct SceneView: View {
             }
         }
         .ignoresSafeArea ()
-        // Desaturation fade before vision sessions
-        .saturation(engine.pendingVisionSession != nil ? 0.0 : 1.0)
-        .animation (.easeInOut (duration: 1.2), value: engine.pendingVisionSession == nil)
+        // Desaturation — controlled by isDesaturated so the transition
+        // animates both INTO vision (world drains) and OUT of it (world
+        // slowly returns to colour after VisionView dismisses).
+        .saturation (isDesaturated ? 0.0 : 1.0)
+        .animation (.easeInOut (duration: 1.4), value: isDesaturated)
+        // Desaturate when a vision session begins
+        .onChange (of: engine.pendingVisionSession == nil) {
+            if engine.pendingVisionSession != nil {
+                withAnimation (.easeInOut (duration: 1.2)) {
+                    isDesaturated = true
+                }
+            }
+        }
         // Handoff to VisionView
         .fullScreenCover (
             isPresented: Binding (
@@ -81,12 +92,15 @@ struct SceneView: View {
         ) {
             if let session = engine.pendingVisionSession {
                 VisionView (fragments: session.fragments) { selectedIDs in
-                    // Dismiss the cover first, then advance
-                    DispatchQueue.main.asyncAfter (deadline: .now () + 0.5) {
-                        engine.visionSessionCompleted (
-                            sessionID: session.sessionID,
-                            selectedFragmentIDs: selectedIDs
-                        )
+                    // Complete the session — engine clears pendingVisionSession,
+                    // dismissing the cover. Colour is restored after a short pause
+                    // so the world doesn't flash back mid-dismiss.
+                    engine.visionSessionCompleted (
+                        sessionID: session.sessionID,
+                        selectedFragmentIDs: selectedIDs
+                    )
+                    DispatchQueue.main.asyncAfter (deadline: .now () + 0.6) {
+                        isDesaturated = false
                     }
                 }
             }

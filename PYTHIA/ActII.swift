@@ -16,8 +16,21 @@
 //   act2_[scene]_[beat]
 //   Vision return nodes: [sessionID]_return
 //
-// Connect: in ActI.swift, set act1_close_end.nextNodeID = "act2_open_01"
-// and update ContentView to pass ActI.nodes + ActII.nodes to NarrativeEngine.
+// Vision → Dialogue pattern (see ActI.swift for full notes):
+//   The burning ships vision feeds TWO choice moments:
+//
+//   1. act2_demetrios_intercept_02 — standard choices, NOT fragment-derived.
+//      These determine whether Mara follows Demetrios, speaks honestly, or
+//      uses traditional Oracle language. This is the path-level decision.
+//
+//   2. act2_ships_prophecy_wording — fragment-derived choices, sourceFragmentID set.
+//      This node sits between the path decision and the response nodes.
+//      It determines the specific words Mara uses — her oracle voice in that
+//      moment, drawn directly from what she saw.
+//
+//   The intercept choices route to act2_ships_prophecy_wording, which then
+//   routes to the appropriate response node based on which fragment the
+//   player speaks from.
 
 import SwiftUI
 
@@ -162,6 +175,10 @@ enum ActII {
             teaches: .witnessedDemetriosRedirectProphecy
         ),
 
+        // Standard path-level choice — NOT fragment-derived.
+        // These determine whether Mara follows Demetrios, speaks honestly,
+        // or retreats into Oracle tradition. Each routes to the prophecy
+        // wording node where the fragment vocabulary takes over.
         DialogueNode (
             id: "act2_demetrios_intercept_02",
             speaker: .narrator,
@@ -169,33 +186,267 @@ enum ActII {
             choices: [
                 DialogueChoice (
                     id: "ships_follow_demetrios",
-                    text: "\"The god shows Greek ships driving Persian fire from the harbour. Your fleet will hold.\"",
+                    text: "Speak Demetrios's version — Greek ships driving Persian fire from the harbour.",
                     requires: nil,
-                    leadsTo: "act2_athenian_followed",
+                    leadsTo: "act2_ships_prophecy_wording_false",
                     teaches: .capitulatedToDemetriosWishes,
-                    axisNote: "Follows Demetrios — integrity -2"
+                    axisNote: "Follows Demetrios — integrity -2. Routes to false prophecy wording."
                 ),
                 DialogueChoice (
                     id: "ships_honest",
-                    text: "\"I saw ships burning on dark water. Whose ships — the god does not say. Only that fire decides this.\"",
+                    text: "Speak honestly — you saw burning ships, but not whose they were.",
                     requires: nil,
-                    leadsTo: "act2_athenian_honest",
+                    leadsTo: "act2_ships_prophecy_wording_honest",
                     teaches: .spokeAgainstDemetriosWishes,
-                    axisNote: "Honest ambiguity — integrity +2"
+                    axisNote: "Honest ambiguity — integrity +2. Routes to honest wording."
                 ),
                 DialogueChoice (
                     id: "ships_oblique",
-                    text: "\"The wooden walls will hold what bronze cannot. Athens knows where its strength lies.\"",
+                    text: "Retreat into Oracle tradition — wooden walls, poetic and deniable.",
                     requires: nil,
-                    leadsTo: "act2_athenian_oblique",
+                    leadsTo: "act2_ships_prophecy_wording_oblique",
                     teaches: .usedOracularAmbiguityAsShield,
-                    axisNote: "Traditional riddle — integrity -1"
+                    axisNote: "Traditional riddle — integrity -1. Routes to oblique wording."
                 ),
             ],
             nextNodeID: nil,
             trigger: nil,
             teaches: nil
         ),
+
+        // --- Fragment-derived prophecy wording: FALSE PATH ---
+        // Player chose to follow Demetrios. Now the fragments determine
+        // exactly how Mara speaks that false certainty.
+        DialogueNode (
+            id: "act2_ships_prophecy_wording_false",
+            speaker: .mara,
+            text: "The words Demetrios wants are there. You have the fragments too.\n\nYou must speak from one of them.",
+            choices: [
+                DialogueChoice (
+                    id: "ships_false_fire",
+                    text: "\"The god shows fire driven from the water. The fleet that burns is not yours.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — fire fragment, confident",
+                    sourceFragmentID: "ships_fire"
+                ),
+                DialogueChoice (
+                    id: "ships_false_wind",
+                    text: "\"The line holds. Apollo shows a fleet that does not break — and it flies Greek colours.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — HOLDS fragment, assertive",
+                    sourceFragmentID: "ships_wind"
+                ),
+                DialogueChoice (
+                    id: "ships_false_aftermath",
+                    text: "\"The god shows what comes after — and what comes after is a Greece that has held. Build toward that.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — AFTER fragment, forward-looking",
+                    sourceFragmentID: "ships_aftermath"
+                ),
+                DialogueChoice (
+                    id: "ships_false_oar",
+                    text: "\"I saw movement on the water — pursuit, not retreat. Your fleet drives them back.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — oar/movement fragment",
+                    sourceFragmentID: "ships_oar"
+                ),
+                DialogueChoice (
+                    id: "ships_false_water",
+                    text: "\"The dark water is yours to command. It has always been yours. The god confirms it.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — water fragment, territorial",
+                    sourceFragmentID: "ships_water"
+                ),
+                DialogueChoice (
+                    id: "ships_false_faces",
+                    text: "\"I saw a crowd deciding together — a fleet that moves as one. The god shows unity, not ruin.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — faces fragment, collective",
+                    sourceFragmentID: "ships_faces"
+                ),
+                DialogueChoice (
+                    id: "ships_false_wood",
+                    text: "\"What burns is not Greek timber. The fire consumes the enemy. Your fleet stands.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_followed",
+                    teaches: nil,
+                    axisNote: "False — wood fragment, specific",
+                    sourceFragmentID: "ships_wood"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- Fragment-derived prophecy wording: HONEST PATH ---
+        // Player chose to speak honestly. The fragments shape how that
+        // honesty lands — poetic, direct, uncertain, or weighted.
+        DialogueNode (
+            id: "act2_ships_prophecy_wording_honest",
+            speaker: .mara,
+            text: "You will speak what you saw. The fragments give you the words.",
+            choices: [
+                DialogueChoice (
+                    id: "ships_honest_fire",
+                    text: "\"I saw ships burning on dark water. The fire does not say whose. Only that fire decides this.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — fire fragment, ambiguous",
+                    sourceFragmentID: "ships_fire"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_water",
+                    text: "\"I saw dark water and fire together. The water was cold and without allegiance. It did not show me which side it held.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — water fragment, impartial",
+                    sourceFragmentID: "ships_water"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_wood",
+                    text: "\"I smelled burning timber. Something built over years, gone in hours. I cannot tell you it was not Greek timber.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — wood fragment, most alarming",
+                    sourceFragmentID: "ships_wood"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_wind",
+                    text: "\"The god showed me a line that holds — but not which line, not which fleet. Something holds. I cannot promise it is yours.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — HOLDS fragment, cautious",
+                    sourceFragmentID: "ships_wind"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_oar",
+                    text: "\"I saw movement in two directions at once — pursuit and retreat, indistinguishable. The god did not say which was yours.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — oar fragment, unsettling",
+                    sourceFragmentID: "ships_oar"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_faces",
+                    text: "\"I saw many mouths opening together — a crowd deciding something, or being decided for. I do not know which side of that decision Athens stands on.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — faces fragment, political",
+                    sourceFragmentID: "ships_faces"
+                ),
+                DialogueChoice (
+                    id: "ships_honest_aftermath",
+                    text: "\"The god did not show me the battle. He showed me what comes after. I do not yet know what it costs to reach it.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_honest",
+                    teaches: nil,
+                    axisNote: "Honest — AFTER fragment, withholding",
+                    sourceFragmentID: "ships_aftermath"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // --- Fragment-derived prophecy wording: OBLIQUE PATH ---
+        // Player chose traditional Oracle language. The fragments shape
+        // which tradition she reaches for — each has a different flavour
+        // of poetic evasion.
+        DialogueNode (
+            id: "act2_ships_prophecy_wording_oblique",
+            speaker: .mara,
+            text: "The Oracle's voice is there when you need it. The fragments give it direction.",
+            choices: [
+                DialogueChoice (
+                    id: "ships_oblique_fire",
+                    text: "\"The god shows fire that serves those who understand it. Athens knows where its strength lies.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — fire fragment",
+                    sourceFragmentID: "ships_fire"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_wind",
+                    text: "\"The wooden walls will hold what bronze cannot. What holds, holds for a reason.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — HOLDS fragment, the famous wooden walls echo",
+                    sourceFragmentID: "ships_wind"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_aftermath",
+                    text: "\"The god does not speak of battles. He speaks of what follows them. Athens should think about what it is building toward.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — AFTER fragment, forward-deflection",
+                    sourceFragmentID: "ships_aftermath"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_water",
+                    text: "\"The sea does not love those who fear it. Those who have made it their element will find their answer there.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — water fragment, indirect encouragement",
+                    sourceFragmentID: "ships_water"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_oar",
+                    text: "\"Apollo shows the way of those who move. Stillness is not what the god counsels here.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — oar fragment, action-encouragement",
+                    sourceFragmentID: "ships_oar"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_faces",
+                    text: "\"What many voices agree on, the god tends to confirm. Athens speaks with one voice. That is not nothing.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — faces fragment, collective will",
+                    sourceFragmentID: "ships_faces"
+                ),
+                DialogueChoice (
+                    id: "ships_oblique_wood",
+                    text: "\"What is built to last lasts. What is built in haste burns. Athens has been building a long time.\"",
+                    requires: nil,
+                    leadsTo: "act2_athenian_oblique",
+                    teaches: nil,
+                    axisNote: "Oblique — wood fragment, endurance",
+                    sourceFragmentID: "ships_wood"
+                ),
+            ],
+            nextNodeID: nil,
+            trigger: nil,
+            teaches: nil
+        ),
+
+        // Response nodes — unchanged, all three paths converge here
 
         DialogueNode (
             id: "act2_athenian_followed",
@@ -220,7 +471,7 @@ enum ActII {
         DialogueNode (
             id: "act2_athenian_oblique",
             speaker: .nikomedes,
-            text: "He studies you for a long moment — long enough to make clear he is deciding something.\n\n\"Wooden walls,\" he says finally. \"Yes. That will do.\"\n\nIt is not a grateful response. It is a man who came expecting one thing and received another, and is deciding what to do about it.",
+            text: "He studies you for a long moment — long enough to make clear he is deciding something.\n\n\"Yes,\" he says finally. \"That will do.\"\n\nIt is not a grateful response. It is a man who came expecting one thing and received another, and is deciding what to do about it.",
             choices: nil,
             nextNodeID: "act2_athenian_exit",
             trigger: nil,
@@ -657,13 +908,12 @@ enum ActII {
             teaches: nil
         ),
 
-        // Act II end node — links to Act III
         DialogueNode (
             id: "act2_close_end",
             speaker: .narrator,
             text: "— ACT III —\n\nTHE PASS",
             choices: nil,
-            nextNodeID: "act3_open_01",    
+            nextNodeID: "act3_open_01",
             trigger: .actTransition (toAct: 3),
             teaches: nil
         ),
@@ -671,46 +921,58 @@ enum ActII {
 
     // MARK: - Vision Fragments: The Burning Ships
     //
-    // The second vision — higher stakes than the harvest.
+    // Seven fragments — higher stakes than the harvest.
     // Genuinely ambiguous: are these Greek or Persian ships?
     // Demetrios will immediately suggest an interpretation.
-    // The player's fragment selection seeds the prophecy choices that follow.
+    //
+    // Authoring note: dialogueOption is the oracle-voiced line
+    // that becomes a dialogue choice in the three wording nodes
+    // (act2_ships_prophecy_wording_false / _honest / _oblique).
+    // Each fragment maps to one choice in each of those nodes.
+    // The player selects 3 fragments → sees 3 options per wording node.
 
     static let burningShipsFragments: [Fragment] = [
         Fragment (
             id: "ships_fire",
             type: .image (symbolName: "flame.fill"),
-            significance: "the same fire that warms and destroys — it does not choose"
+            significance: "the same fire that warms and destroys — it does not choose",
+            dialogueOption: "I saw ships burning on dark water. The fire does not say whose. Only that fire decides this."
         ),
         Fragment (
             id: "ships_water",
             type: .colour (hue: Color (red: 0.08, green: 0.18, blue: 0.38)),
-            significance: "dark water — cold, vast, without allegiance"
+            significance: "dark water — cold, vast, without allegiance",
+            dialogueOption: "I saw dark water and fire together. The water was cold and without allegiance. It did not show me which side it held."
         ),
         Fragment (
             id: "ships_wood",
             type: .sensation (text: "the smell of\nburning timber"),
-            significance: "something built over years, gone in hours"
+            significance: "something built over years, gone in hours",
+            dialogueOption: "I smelled burning timber. Something built over years, gone in hours. I cannot tell you it was not Greek timber."
         ),
         Fragment (
             id: "ships_wind",
             type: .word (text: "HOLDS"),
-            significance: "a line that does not break — or the moment before it does"
+            significance: "a line that does not break — or the moment before it does",
+            dialogueOption: "The god showed me a line that holds — but not which line, not which fleet. Something holds. I cannot promise it is yours."
         ),
         Fragment (
             id: "ships_oar",
             type: .image (symbolName: "arrow.left.and.right"),
-            significance: "movement in two directions at once — pursuit, or retreat"
+            significance: "movement in two directions at once — pursuit, or retreat",
+            dialogueOption: "I saw movement in two directions at once — pursuit and retreat, indistinguishable. The god did not say which was yours."
         ),
         Fragment (
             id: "ships_faces",
             type: .sensation (text: "many mouths\nopening together"),
-            significance: "a crowd deciding something — or being decided for"
+            significance: "a crowd deciding something — or being decided for",
+            dialogueOption: "I saw many mouths opening together — a crowd deciding something, or being decided for. I do not know which side of that decision Athens stands on."
         ),
         Fragment (
             id: "ships_aftermath",
             type: .word (text: "AFTER"),
-            significance: "not the event — what it makes possible"
+            significance: "not the event — what it makes possible",
+            dialogueOption: "The god did not show me the battle. He showed me what comes after. I do not yet know what it costs to reach it."
         ),
     ]
 }
