@@ -26,6 +26,9 @@ struct SceneView: View {
     @State private var showingJournal: Bool = false
     @State private var tapIndicatorOpacity: Double = 1  // Pulsing "tap to continue"
     @State private var showingActTitle: Bool = false    // Act transition title card
+    @State private var showingEndGame: Bool = false     // End game / credits screen
+
+    var onNewGame: (() -> Void)? = nil                  // Called when player restarts
 
     // MARK: Palette — warm ochre / parchment world
 
@@ -91,6 +94,16 @@ struct SceneView: View {
         .sheet (isPresented: $showingJournal) {
             JournalView (entries: engine.journalEntries)
         }
+        // End game screen
+        .fullScreenCover (isPresented: $showingEndGame) {
+            EndGameView (
+                ending: engine.resolvedEnding,
+                onPlayAgain: {
+                    showingEndGame = false
+                    onNewGame? ()
+                }
+            )
+        }
         // Act title card
         .fullScreenCover (isPresented: $showingActTitle) {
             ActTitleCard (actNumber: engine.currentActNumber) {
@@ -107,6 +120,13 @@ struct SceneView: View {
             // Route to ending
             if engine.currentNode?.id == "epilogue_ending_branch" {
                 engine.routeToEnding ()
+            }
+
+            // Trigger end game screen
+            if engine.currentNode?.id == "epilogue_end" {
+                DispatchQueue.main.asyncAfter (deadline: .now () + 2.5) {
+                    showingEndGame = true
+                }
             }
         }
         // Show act title card on act transition
@@ -496,6 +516,128 @@ struct ActTitleCard: View {
         case 3: return "III"
         case 4: return "IV"
         default: return "\(n)"
+        }
+    }
+}
+
+// MARK: - EndGameView
+
+/// Full-screen ending screen shown after the credits beat.
+/// Displays the ending title, flame description, and a Play Again option.
+struct EndGameView: View {
+    let ending: Ending
+    let onPlayAgain: () -> Void
+
+    @State private var visible: Bool = false
+    @State private var detailVisible: Bool = false
+
+    private let parchment  = Color (red: 0.96, green: 0.91, blue: 0.82)
+    private let ochre      = Color (red: 0.72, green: 0.52, blue: 0.28)
+    private let dimParch   = Color (red: 0.65, green: 0.58, blue: 0.46)
+    private let bgColor    = Color (red: 0.06, green: 0.05, blue: 0.04)
+
+    var body: some View {
+        ZStack {
+            bgColor.ignoresSafeArea ()
+
+            // Subtle flame glow
+            RadialGradient (
+                colors: [
+                    ochre.opacity (0.08),
+                    Color.clear
+                ],
+                center: UnitPoint (x: 0.5, y: 0.45),
+                startRadius: 0,
+                endRadius: 300
+            )
+            .ignoresSafeArea ()
+
+            VStack (spacing: 0) {
+                Spacer ()
+
+                // Flame icon
+                Image (systemName: "flame")
+                    .font (.system (size: 32, weight: .ultraLight))
+                    .foregroundColor (ochre.opacity (0.6))
+                    .padding (.bottom, 36)
+                    .opacity (visible ? 1 : 0)
+
+                // Ending title
+                Text (ending.title.uppercased ())
+                    .font (.system (size: 28, weight: .ultraLight, design: .serif))
+                    .tracking (10)
+                    .foregroundColor (parchment.opacity (0.88))
+                    .opacity (visible ? 1 : 0)
+
+                // Divider
+                Rectangle ()
+                    .fill (ochre.opacity (0.3))
+                    .frame (width: 48, height: 0.5)
+                    .padding (.top, 24)
+                    .padding (.bottom, 24)
+                    .opacity (visible ? 1 : 0)
+
+                // Flame description
+                Text (ending.flameDescription)
+                    .font (.system (size: 14, weight: .ultraLight, design: .serif))
+                    .foregroundColor (dimParch.opacity (0.7))
+                    .tracking (2)
+                    .opacity (detailVisible ? 1 : 0)
+
+                // Ending subtitle
+                Text (endingSubtitle)
+                    .font (.system (size: 12, weight: .ultraLight, design: .serif))
+                    .foregroundColor (dimParch.opacity (0.45))
+                    .multilineTextAlignment (.center)
+                    .lineSpacing (6)
+                    .padding (.horizontal, 56)
+                    .padding (.top, 20)
+                    .opacity (detailVisible ? 1 : 0)
+
+                Spacer ()
+                Spacer ()
+
+                // Play Again
+                Button {
+                    onPlayAgain ()
+                } label: {
+                    VStack (spacing: 8) {
+                        Text ("PLAY AGAIN")
+                            .font (.system (size: 11, weight: .light, design: .serif))
+                            .foregroundColor (parchment.opacity (0.6))
+                            .tracking (8)
+
+                        Rectangle ()
+                            .fill (ochre.opacity (0.35))
+                            .frame (width: 32, height: 0.5)
+                    }
+                }
+                .opacity (detailVisible ? 1 : 0)
+                .padding (.bottom, 72)
+            }
+            .animation (.easeIn (duration: 1.4), value: visible)
+            .animation (.easeIn (duration: 1.4).delay (1.8), value: detailVisible)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter (deadline: .now () + 0.5) {
+                visible = true
+            }
+            DispatchQueue.main.asyncAfter (deadline: .now () + 2.2) {
+                detailVisible = true
+            }
+        }
+    }
+
+    private var endingSubtitle: String {
+        switch ending {
+        case .theProphet:
+            return "She spoke truth.\nShe paid for it.\nShe is at peace."
+        case .theMartyr:
+            return "She believed.\nShe compromised.\nShe lives with both."
+        case .thePhilosopher:
+            return "She no longer believes.\nShe told the truth anyway.\nThat is its own kind of faith."
+        case .theHollow:
+            return "She says the words.\nShe finds them.\nShe always does."
         }
     }
 }

@@ -297,12 +297,78 @@ class KnowledgeState: ObservableObject {
         }
     }
 
-    // MARK: - Persistence (disabled — always starts fresh)
+    // MARK: - Persistence
 
-    func save () {}     // No-op until persistence is re-enabled
+    /// The save file URL in the app's documents directory.
+    private static var saveURL: URL {
+        FileManager.default.urls (for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent ("pythia_save.json")
+    }
 
-    // MARK: - Debug
+    /// True if a save file exists on disk.
+    static var hasSave: Bool {
+        FileManager.default.fileExists (atPath: saveURL.path)
+    }
 
+    /// Persist the current state to disk.
+    /// Called automatically after every node advance.
+    func save () {
+        let snapshot = SaveSnapshot (
+            learnedFlags: Array (learnedFlags),
+            axes: axes,
+            currentAct: currentAct,
+            lastNodeID: lastNodeID,
+            visionHistory: visionHistory,
+            dialogueHistory: dialogueHistory
+        )
+        do {
+            let data = try JSONEncoder ().encode (snapshot)
+            try data.write (to: Self.saveURL, options: .atomic)
+        } catch {
+            // Save failures are silent — the game is still playable
+            print ("PYTHIA: save failed — \(error)")
+        }
+    }
+
+    /// Load state from disk into this instance.
+    /// Call once on init when resuming a saved game.
+    func load () {
+        guard let data = try? Data (contentsOf: Self.saveURL),
+              let snapshot = try? JSONDecoder ().decode (SaveSnapshot.self, from: data)
+        else { return }
+
+        learnedFlags = Set (snapshot.learnedFlags)
+        axes = snapshot.axes
+        currentAct = snapshot.currentAct
+        lastNodeID = snapshot.lastNodeID
+        visionHistory = snapshot.visionHistory
+        dialogueHistory = snapshot.dialogueHistory
+    }
+
+    /// Erase the save file — called when starting a New Game.
+    static func deleteSave () {
+        try? FileManager.default.removeItem (at: saveURL)
+    }
+}
+
+// MARK: - Save Snapshot
+
+/// Codable snapshot of all persisted state.
+/// Kept separate from KnowledgeState so the @Published
+/// properties don't need to be Codable themselves.
+
+private struct SaveSnapshot: Codable {
+    let learnedFlags: [KnowledgeFlag]
+    let axes: EndingAxes
+    let currentAct: Int
+    let lastNodeID: String?
+    let visionHistory: [VisionSessionRecord]
+    let dialogueHistory: [DialogueChoiceRecord]
+}
+
+// MARK: - KnowledgeState Debug Extension
+
+extension KnowledgeState {
     /// Returns a summary of current state — for debug builds only.
     /// Never expose this to the player.
     var debugSummary: String {
@@ -317,6 +383,4 @@ class KnowledgeState: ObservableObject {
         ============================
         """
     }
-
-    init () {}
 }

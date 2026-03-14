@@ -2,32 +2,14 @@
 // PYTHIA
 //
 // The title screen. First thing the player sees.
-// Aesthetic: near-black stone, a single sacred flame,
-// staggered reveals, serif everything.
-//
-// The sequence:
-//   1. Darkness
-//   2. Flame appears — slow fade, subtle pulse
-//   3. Greek ornament line drifts in
-//   4. "PYTHIA" rises
-//   5. Tagline fades in beneath
-//   6. "Begin" appears last — understated, not a button
-//
-// Wire into ContentView:
-//   @State private var gameStarted = false
-//
-//   var body: some View {
-//       if gameStarted {
-//           SceneView (engine: NarrativeEngine (nodes: ActI.nodes, knowledge: knowledge))
-//       } else {
-//           SplashScreen (onBegin: { gameStarted = true })
-//       }
-//   }
+// Shows New Game / Continue based on whether a save exists.
 
 import SwiftUI
 
 struct SplashScreen: View {
-    var onBegin: () -> Void
+    var hasSave: Bool
+    var onNewGame: () -> Void
+    var onContinue: () -> Void
 
     // MARK: - Animation state
 
@@ -42,8 +24,7 @@ struct SplashScreen: View {
 
     // MARK: - Palette
 
-    private let void         = Color (red: 0.06, green: 0.05, blue: 0.04)   // deeper than black
-    private let stone        = Color (red: 0.10, green: 0.08, blue: 0.06)
+    private let void         = Color (red: 0.06, green: 0.05, blue: 0.04)
     private let parchment    = Color (red: 0.94, green: 0.88, blue: 0.76)
     private let dimParchment = Color (red: 0.65, green: 0.58, blue: 0.46)
     private let flameOrange  = Color (red: 0.95, green: 0.55, blue: 0.18)
@@ -55,10 +36,8 @@ struct SplashScreen: View {
 
     var body: some View {
         ZStack {
-            // --- Absolute darkness ---
             void.ignoresSafeArea ()
 
-            // --- Radial glow behind the flame — blooms with flame ---
             RadialGradient (
                 colors: [
                     flameOrange.opacity (flamePulse ? 0.13 : 0.08),
@@ -76,18 +55,15 @@ struct SplashScreen: View {
             VStack (spacing: 0) {
                 Spacer ()
 
-                // --- Sacred flame ---
                 flameView
                     .padding (.bottom, 36)
 
-                // --- Greek ornament divider ---
                 ornamentLine
                     .padding (.bottom, 28)
                     .opacity (ornamentVisible ? 1 : 0)
                     .offset (y: ornamentVisible ? 0 : 6)
                     .animation (.easeOut (duration: 1.0).delay (1.6), value: ornamentVisible)
 
-                // --- PYTHIA ---
                 Text ("PYTHIA")
                     .font (.system (size: 52, weight: .ultraLight, design: .serif))
                     .foregroundColor (parchment)
@@ -96,7 +72,6 @@ struct SplashScreen: View {
                     .offset (y: titleVisible ? 0 : 12)
                     .animation (.easeOut (duration: 1.2).delay (2.2), value: titleVisible)
 
-                // --- Tagline ---
                 VStack (spacing: 6) {
                     Text ("She who knows.")
                         .font (.system (size: 13, weight: .ultraLight, design: .serif))
@@ -115,7 +90,6 @@ struct SplashScreen: View {
                 Spacer ()
                 Spacer ()
 
-                // --- Setting note ---
                 Text ("DELPHI  ·  480 BC")
                     .font (.system (size: 9, weight: .ultraLight, design: .serif))
                     .foregroundColor (dimParchment.opacity (0.35))
@@ -124,8 +98,8 @@ struct SplashScreen: View {
                     .animation (.easeIn (duration: 1.0).delay (3.8), value: taglineVisible)
                     .padding (.bottom, 32)
 
-                // --- Begin ---
-                beginButton
+                // --- Begin buttons ---
+                beginButtons
                     .padding (.bottom, 64)
             }
         }
@@ -134,11 +108,77 @@ struct SplashScreen: View {
         }
     }
 
+    // MARK: - Begin Buttons
+
+    /// Shows Continue + New Game if a save exists, otherwise just Begin.
+    private var beginButtons: some View {
+        VStack (spacing: 28) {
+            if hasSave {
+                // Continue — primary action
+                splashButton (label: "CONTINUE") {
+                    guard !transitioning else { return }
+                    transitioning = true
+                    fadeOut { onContinue () }
+                }
+
+                // New Game — secondary, dimmer
+                Button {
+                    guard !transitioning else { return }
+                    transitioning = true
+                    fadeOut { onNewGame () }
+                } label: {
+                    Text ("NEW GAME")
+                        .font (.system (size: 10, weight: .ultraLight, design: .serif))
+                        .foregroundColor (dimParchment.opacity (beginPulse * 0.45))
+                        .tracking (6)
+                }
+            } else {
+                // No save — single Begin button
+                splashButton (label: "BEGIN") {
+                    guard !transitioning else { return }
+                    transitioning = true
+                    fadeOut { onNewGame () }
+                }
+            }
+        }
+        .opacity (beginVisible ? 1 : 0)
+        .onAppear {
+            withAnimation (.easeInOut (duration: 2.0).repeatForever (autoreverses: true).delay (5.0)) {
+                beginPulse = 0.6
+            }
+        }
+    }
+
+    private func splashButton (label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action ()
+        } label: {
+            VStack (spacing: 8) {
+                Text (label)
+                    .font (.system (size: 11, weight: .light, design: .serif))
+                    .foregroundColor (parchment.opacity (beginPulse * 0.75))
+                    .tracking (8)
+
+                Rectangle ()
+                    .fill (ochre.opacity (beginPulse * 0.4))
+                    .frame (width: 32, height: 0.5)
+            }
+        }
+    }
+
+    private func fadeOut (completion: @escaping () -> Void) {
+        withAnimation (.easeIn (duration: 0.8)) {
+            beginPulse = 0
+        }
+        DispatchQueue.main.asyncAfter (deadline: .now () + 0.7) {
+            completion ()
+        }
+    }
+
     // MARK: - Flame
 
     private var flameView: some View {
         ZStack {
-            // Outer glow rings
             ForEach ([0, 1, 2], id: \.self) { i in
                 Circle ()
                     .fill (
@@ -162,21 +202,17 @@ struct SplashScreen: View {
                     )
             }
 
-            // Flame icon — layered for depth
             ZStack {
-                // Shadow layer
                 Image (systemName: "flame.fill")
                     .font (.system (size: 44, weight: .ultraLight))
                     .foregroundColor (flameOrange.opacity (0.4))
                     .blur (radius: 6)
                     .offset (y: 2)
 
-                // Mid layer
                 Image (systemName: "flame.fill")
                     .font (.system (size: 44, weight: .ultraLight))
                     .foregroundColor (flameOrange)
 
-                // Core — bright centre
                 Image (systemName: "flame.fill")
                     .font (.system (size: 28, weight: .ultraLight))
                     .foregroundColor (flameCore.opacity (0.9))
@@ -194,7 +230,6 @@ struct SplashScreen: View {
 
     // MARK: - Ornament
 
-    /// A classical Greek key / meander-inspired ornament line
     private var ornamentLine: some View {
         HStack (spacing: 10) {
             line
@@ -220,69 +255,28 @@ struct SplashScreen: View {
             .rotationEffect (.degrees (45))
     }
 
-    // MARK: - Begin Button
-
-    private var beginButton: some View {
-        Button {
-            guard !transitioning else { return }
-            transitioning = true
-            withAnimation (.easeIn (duration: 0.8)) {
-                beginPulse = 0
-            }
-            DispatchQueue.main.asyncAfter (deadline: .now () + 0.7) {
-                onBegin ()
-            }
-        } label: {
-            VStack (spacing: 8) {
-                Text ("BEGIN")
-                    .font (.system (size: 11, weight: .light, design: .serif))
-                    .foregroundColor (parchment.opacity (beginPulse * 0.75))
-                    .tracking (8)
-
-                Rectangle ()
-                    .fill (ochre.opacity (beginPulse * 0.4))
-                    .frame (width: 32, height: 0.5)
-            }
-        }
-        .opacity (beginVisible ? 1 : 0)
-        // Subtle pulse on the begin button
-        .onAppear {
-            withAnimation (.easeInOut (duration: 2.0).repeatForever (autoreverses: true).delay (5.0)) {
-                beginPulse = 0.6
-            }
-        }
-    }
-
     // MARK: - Sequence
 
     private func runSequence () {
-        // Flame
         DispatchQueue.main.asyncAfter (deadline: .now () + 0.4) {
             flameVisible = true
             flamePulse = true
         }
-        // Ornament
         DispatchQueue.main.asyncAfter (deadline: .now () + 1.4) {
             ornamentVisible = true
         }
-        // Title
         DispatchQueue.main.asyncAfter (deadline: .now () + 2.0) {
             titleVisible = true
         }
-        // Tagline + setting
         DispatchQueue.main.asyncAfter (deadline: .now () + 3.0) {
             taglineVisible = true
         }
-        // Begin
         DispatchQueue.main.asyncAfter (deadline: .now () + 4.6) {
             beginVisible = true
         }
     }
 }
 
-// MARK: - Preview
-
 #Preview {
-    SplashScreen (onBegin: {
-    })
+    SplashScreen (hasSave: false, onNewGame: {}, onContinue: {})
 }

@@ -142,9 +142,10 @@ class NarrativeEngine: ObservableObject {
             nodeGraph[node.id] = node
         }
 
-        // Start at the first node unless specified
-        let firstID = startNodeID ?? nodes.first?.id ?? ""
-        advance (to: firstID)
+        // Do NOT advance here. ContentView controls when the game starts
+        // via resetToStart() or loadSave(), so the engine waits idle until
+        // one of those is called. This prevents the engine advancing past
+        // the first node before the player has tapped Begin / Continue.
     }
 
     // MARK: - Advancing
@@ -255,8 +256,31 @@ class NarrativeEngine: ObservableObject {
         }
     }
     
+    // MARK: - Save / Load / Reset
+
+    /// Restore engine state from a saved game.
+    /// Loads knowledge from disk and resumes from lastNodeID.
+    func loadSave () {
+        knowledge.load ()
+        currentActNumber = knowledge.currentAct
+        let resumeID = knowledge.lastNodeID ?? "act1_prologue_01"
+        advance (to: resumeID)
+    }
+
+    /// Reset to the very first node — used for New Game.
+    /// KnowledgeState.deleteSave() has already wiped the save file before this is called.
+    func resetToStart () {
+        currentActNumber = 1
+        advance (to: "act1_prologue_01")
+    }
+
     // MARK: - Ending Handling
-    
+
+    /// The resolved ending — computed from knowledge axes.
+    var resolvedEnding: Ending {
+        knowledge.resolveEnding ()
+    }
+
     func routeToEnding () {
         let ending = knowledge.resolveEnding ()
         switch ending {
