@@ -38,6 +38,7 @@ enum Speaker {
     case lyra
     case nikomedes
     case leonidas
+    case pausanias
     case narrator                       // Environmental / scene description
 
     var displayName: String {
@@ -47,6 +48,7 @@ enum Speaker {
         case .lyra:       return "LYRA"
         case .nikomedes:  return "NIKOMEDES"
         case .leonidas:   return "LEONIDAS"
+        case .pausanias:  return "PAUSANIAS"
         case .narrator:   return ""
         }
     }
@@ -59,6 +61,7 @@ enum Speaker {
         case .lyra:       return Color (red: 0.78, green: 0.68, blue: 0.55)   // pale tan
         case .nikomedes:  return Color (red: 0.65, green: 0.60, blue: 0.50)   // grey-ochre
         case .leonidas:   return Color (red: 0.80, green: 0.35, blue: 0.25)   // Spartan red
+        case .pausanias:  return Color (red: 0.49, green: 0.52, blue: 0.69)   // Theban blue
         case .narrator:   return Color (red: 0.55, green: 0.50, blue: 0.42)   // muted stone
         }
     }
@@ -70,6 +73,7 @@ enum Speaker {
         case .lyra:       return "portrait_lyra"
         case .nikomedes: return "portrait_nikomedes"
         case .leonidas: return "portrait_leonidas"
+        case .pausanias: return "portrait_pausanias"
         default:          return nil
         }
     }
@@ -95,7 +99,7 @@ enum NodeTrigger {
 }
 
 /// Locations in the sanctuary — controls background art
-enum LocationID: String {
+enum LocationID: String, Codable {
     case sacredSpring    = "sacred_spring"
     case adyton          = "adyton"
     case templeForecourt = "temple_forecourt"
@@ -124,7 +128,11 @@ class NarrativeEngine: ObservableObject {
     /// Current act number — observed by SceneView to trigger title card
     @Published private(set) var currentActNumber: Int = 1
 
-    /// The journal — accumulated narrative entries the player can read
+    /// True while a save is being loaded — suppresses SceneView's act card observer
+    @Published private(set) var isLoadingGame: Bool = false
+
+    /// The journal — passthrough to KnowledgeState so entries persist with saves.
+    /// @Published so SceneView re-renders when entries are added.
     @Published private(set) var journalEntries: [JournalEntry] = []
 
     // MARK: Private
@@ -228,7 +236,8 @@ class NarrativeEngine: ObservableObject {
     // MARK: - Journal
 
     func addJournalEntry (_ entry: JournalEntry) {
-        journalEntries.append (entry)
+        knowledge.addJournalEntry (entry)
+        journalEntries = knowledge.journalEntries  // keep published mirror in sync
     }
 
     // MARK: - Trigger Handling
@@ -243,6 +252,7 @@ class NarrativeEngine: ObservableObject {
             withAnimation (.easeInOut (duration: 0.8)) {
                 currentLocation = location
             }
+            knowledge.lastLocation = location
 
         case .openJournal (let entry):
             addJournalEntry (entry)
@@ -263,8 +273,12 @@ class NarrativeEngine: ObservableObject {
     func loadSave () {
         knowledge.load ()
         currentActNumber = knowledge.currentAct
+        currentLocation = knowledge.lastLocation
+        journalEntries = knowledge.journalEntries
+        isLoadingGame = true
         let resumeID = knowledge.lastNodeID ?? "act1_prologue_01"
         advance (to: resumeID)
+        isLoadingGame = false
     }
 
     /// Reset to the very first node — used for New Game.
@@ -294,7 +308,7 @@ class NarrativeEngine: ObservableObject {
 
 // MARK: - Journal Entry
 
-struct JournalEntry: Identifiable {
+struct JournalEntry: Identifiable, Codable {
     let id: String
     let title: String
     let body: String

@@ -20,8 +20,12 @@ struct ContentView: View {
 
     // MARK: State
 
-    enum Phase { case splash, actCard, game }
+    enum Phase { case splash, actCard, continueCard, game }
     @State private var phase: Phase = .splash
+
+    /// The act number to show on the continue title card.
+    /// Read from KnowledgeState before loadSave() advances the engine.
+    @State private var savedActNumber: Int = 1
 
     @StateObject private var engine: NarrativeEngine = {
         let k = KnowledgeState ()
@@ -42,9 +46,21 @@ struct ContentView: View {
                 .opacity (phase == .game ? 1 : 0)
                 .allowsHitTesting (phase == .game)
 
-            // --- Act I title card ---
+            // --- Act I title card (new game) ---
             if phase == .actCard {
                 ActTitleCard (actNumber: 1) {
+                    withAnimation (.easeInOut (duration: 0.8)) {
+                        phase = .game
+                    }
+                }
+                .transition (.opacity)
+                .zIndex (1)
+            }
+
+            // --- Act title card (continue) ---
+            if phase == .continueCard {
+                ActTitleCard (actNumber: savedActNumber) {
+                    engine.loadSave ()
                     withAnimation (.easeInOut (duration: 0.8)) {
                         phase = .game
                     }
@@ -79,11 +95,11 @@ struct ContentView: View {
         }
     }
 
-    /// Resume from the last saved node.
+    /// Resume from the last saved node — show the act card first, then load.
     private func handleContinue () {
-        engine.loadSave ()
+        savedActNumber = KnowledgeState.savedActNumber ()
         withAnimation (.easeInOut (duration: 0.6)) {
-            phase = .game
+            phase = .continueCard
         }
     }
 }

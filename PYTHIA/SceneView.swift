@@ -27,6 +27,7 @@ struct SceneView: View {
     @State private var tapIndicatorOpacity: Double = 1  // Pulsing "tap to continue"
     @State private var showingActTitle: Bool = false    // Act transition title card
     @State private var showingEndGame: Bool = false     // End game / credits screen
+    @State private var isActTransitionPending: Bool = false  // Blocks tap while title card is queued/shown
 
     var onNewGame: (() -> Void)? = nil                  // Called when player restarts
 
@@ -107,6 +108,7 @@ struct SceneView: View {
         // Act title card
         .fullScreenCover (isPresented: $showingActTitle) {
             ActTitleCard (actNumber: engine.currentActNumber) {
+                isActTransitionPending = false
                 showingActTitle = false
             }
         }
@@ -129,9 +131,10 @@ struct SceneView: View {
                 }
             }
         }
-        // Show act title card on act transition
+        // Show act title card on act transition — suppressed during continue load
         .onChange (of: engine.currentActNumber) {
-            if engine.currentActNumber > 1 {
+            if engine.currentActNumber > 1, !engine.isLoadingGame {
+                isActTransitionPending = true
                 DispatchQueue.main.asyncAfter (deadline: .now () + 1.5) {
                     showingActTitle = true
                 }
@@ -257,7 +260,7 @@ struct SceneView: View {
             }
         )
         .onTapGesture {
-            if node.choices == nil {
+            if node.choices == nil, !isActTransitionPending {
                 engine.tapAdvance ()
             }
         }

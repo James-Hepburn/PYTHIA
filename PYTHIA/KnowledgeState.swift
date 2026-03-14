@@ -178,6 +178,12 @@ class KnowledgeState: ObservableObject {
     /// The last node ID the player reached — used to resume on relaunch
     @Published var lastNodeID: String? = nil
 
+    /// The last location visited — restored on continue so background art is correct
+    @Published var lastLocation: LocationID = .sacredSpring
+
+    /// Journal entries accumulated across the playthrough
+    @Published private(set) var journalEntries: [JournalEntry] = []
+
     // MARK: - Knowledge Accumulation
 
     /// Learn a new flag. Safe to call multiple times — duplicates are ignored.
@@ -200,6 +206,14 @@ class KnowledgeState: ObservableObject {
     /// Check if Mara knows ANY of a set of flags.
     func knowsAny (_ flags: KnowledgeFlag...) -> Bool {
         flags.contains { learnedFlags.contains ($0) }
+    }
+
+    // MARK: - Journal
+
+    /// Append a journal entry. Duplicates (same id) are ignored.
+    func addJournalEntry (_ entry: JournalEntry) {
+        guard !journalEntries.contains (where: { $0.id == entry.id }) else { return }
+        journalEntries.append (entry)
     }
 
     // MARK: - Vision Recording
@@ -310,6 +324,15 @@ class KnowledgeState: ObservableObject {
         FileManager.default.fileExists (atPath: saveURL.path)
     }
 
+    /// Reads the saved act number from disk without fully loading the save.
+    /// Returns 1 if no save exists or the value cannot be read.
+    static func savedActNumber () -> Int {
+        guard let data = try? Data (contentsOf: saveURL),
+              let snapshot = try? JSONDecoder ().decode (SaveSnapshot.self, from: data)
+        else { return 1 }
+        return snapshot.currentAct
+    }
+
     /// Persist the current state to disk.
     /// Called automatically after every node advance.
     func save () {
@@ -318,8 +341,10 @@ class KnowledgeState: ObservableObject {
             axes: axes,
             currentAct: currentAct,
             lastNodeID: lastNodeID,
+            lastLocation: lastLocation,
             visionHistory: visionHistory,
-            dialogueHistory: dialogueHistory
+            dialogueHistory: dialogueHistory,
+            journalEntries: journalEntries
         )
         do {
             let data = try JSONEncoder ().encode (snapshot)
@@ -341,8 +366,10 @@ class KnowledgeState: ObservableObject {
         axes = snapshot.axes
         currentAct = snapshot.currentAct
         lastNodeID = snapshot.lastNodeID
+        lastLocation = snapshot.lastLocation
         visionHistory = snapshot.visionHistory
         dialogueHistory = snapshot.dialogueHistory
+        journalEntries = snapshot.journalEntries
     }
 
     /// Erase the save file — called when starting a New Game.
@@ -362,8 +389,10 @@ private struct SaveSnapshot: Codable {
     let axes: EndingAxes
     let currentAct: Int
     let lastNodeID: String?
+    let lastLocation: LocationID
     let visionHistory: [VisionSessionRecord]
     let dialogueHistory: [DialogueChoiceRecord]
+    let journalEntries: [JournalEntry]
 }
 
 // MARK: - KnowledgeState Debug Extension
