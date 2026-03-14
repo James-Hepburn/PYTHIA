@@ -78,8 +78,8 @@ struct SceneView: View {
         // slowly returns to colour after VisionView dismisses).
         .saturation (isDesaturated ? 0.0 : 1.0)
         // Desaturate and begin vision audio when a session starts
-        .onChange (of: engine.pendingVisionSession == nil) {
-            if engine.pendingVisionSession != nil {
+        .onChange (of: engine.pendingVisionSession == nil) { _, isNil in
+            if !isNil {
                 // Vision starting — drain colour and bring up vision drone
                 withAnimation (.easeInOut (duration: 1.2)) {
                     isDesaturated = true
